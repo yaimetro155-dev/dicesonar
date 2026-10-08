@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ตั้งค่า+เก็บข้อมูล เสียงลูกเต๋ากระทบจาน</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: sans-serif; }
+    body { background: #050508; color: #fff; padding: 16px; padding-bottom: 40px; }
+    
+    .top-bar {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 16px;
+    }
+    .nav-btn {
+      padding: 10px 14px; border: none; border-radius: 8px;
+      font-size: 0.9rem; cursor: pointer; font-weight: bold;
+    }
+    .back-btn { background: #1e3a5f; color: #93c5fd; border: 2px solid #3b82f6; }
+    .logout-btn { background: #5f1e1e; color: #fca5a5; border: 2px solid #ef4444; }
+    
+    h1 { text-align: center; margin-bottom: 8px; font-size: 1.1rem; color: #facc15; }
+    .note { text-align:center; font-size:0.85rem; color:#94a3b8; margin-bottom:12px; }
+    .status { text-align: center; margin: 12px 0; padding: 10px; border-radius: 8px; background: #1a1a2e; }
+    .status.wait { border: 2px solid #facc15; }
+    .status.ok { border: 2px solid #22c55e; box-shadow: 0 0 10px #22c55e40; }
+    .status.single { border: 2px solid #f97316; }
+    
+    .sel-row { display: flex; gap: 8px; margin: 12px 0; flex-wrap: wrap; }
+    .sel-col { flex: 1; min-width: 140px; }
+    .sel-label { font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px; }
+    .btn-group { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .btn {
+      padding: 10px 6px; border: none; border-radius: 6px; font-size: 0.85rem; cursor: pointer;
+      transition: all 0.15s;
+    }
+    .btn.on { background: #1e40af; color: #facc15; font-weight: bold; border: 2px solid #facc15; box-shadow: 0 0 8px #facc1540; }
+    .btn.off { background: #1f2937; color: #6b7280; border: 2px solid transparent; }
+    
+    .canvas-box { background: #000; border-radius: 8px; padding: 10px; margin: 12px 0; cursor: pointer; }
+    canvas { width: 100%; height: 160px; background: #000; border-radius: 4px; }
+    
+    .freq-display-row {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0;
+    }
+    .freq-col { text-align: center; background: #000; border-radius: 8px; padding: 10px; }
+    .freq-label { font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px; }
+    .freq-value { font-size: 1.2rem; font-weight: bold; }
+    .freq-live { color: #4ade80; }
+    .freq-peak { color: #facc15; }
+    
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 12px 0; }
+    .info-box { background: #1a1a2e; border-radius: 8px; padding: 10px; border: 1px solid #2a3a5c; }
+    .info-label { font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px; }
+    .info-val { font-size: 1rem; font-weight: bold; }
+    
+    .save-btn {
+      width: 100%; padding: 14px; border: none; border-radius: 10px;
+      background: #22c55e; color: #000; font-weight: bold; font-size: 1rem; cursor: pointer;
+      margin: 16px 0; transition: all 0.2s;
+    }
+    .save-btn:disabled { background: #374151; color: #9ca3af; cursor: not-allowed; }
+    .save-btn.ready-now {
+      box-shadow: 0 0 12px #22c55e; animation: pulse 1s infinite;
+    }
+    @keyframes pulse {
+      0%,100% { box-shadow: 0 0 12px #22c55e; }
+      50% { box-shadow: 0 0 24px #4ade80; }
+    }
+    
+    .hint { font-size: 0.8rem; color: #94a3b8; text-align: center; margin-bottom: 16px; line-height:1.5; }
+    
+    .sample-section { margin-top: 8px; }
+    .sample-head {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid #2a3a5c;
+    }
+    .sample-head-left { display: flex; align-items: center; gap: 8px; }
+    .sample-head label { font-size: 0.9rem; color: #e5e7eb; cursor: pointer; }
+    .del-selected-btn {
+      padding: 8px 14px; border: none; border-radius: 6px;
+      background: #dc2626; color: #fff; font-weight: bold; cursor: pointer;
+      font-size: 0.85rem; transition: all 0.2s;
+    }
+    .del-selected-btn:disabled { background: #374151; color: #6b7280; cursor: not-allowed; }
+    
+    .sample-scroll-frame {
+      border: 2px solid #2a3a5c; border-radius: 10px;
+      background: #0f0f1a; max-height: 320px; overflow-y: auto; padding: 8px;
+    }
+    .sample-item {
+      background: #1a1a2e; border-radius: 6px; padding: 10px; margin-bottom: 6px;
+      display: flex; align-items: flex-start; gap: 10px; border-left: 3px solid #3b82f6;
+    }
+    .sample-item.selected { border-left-color: #ef4444; background: #2a1a2e; }
+    .sample-check { margin-top: 2px; cursor: pointer; width: 18px; height: 18px; flex-shrink: 0; }
+    .sample-info { flex: 1; font-size: 0.9rem; line-height: 1.5; }
+    .sample-del-one {
+      padding: 6px 10px; border: none; border-radius: 4px;
+      background: #dc2626; color: #fff; cursor: pointer; font-size: 0.8rem; flex-shrink: 0;
+    }
+    .empty-msg { text-align: center; padding: 30px 20px; color: #6b7280; font-size: 0.9rem; }
+    
+    .status-dice {
+      display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 6px;
+      font-size: 0.85rem; flex-wrap: wrap;
+    }
+    .dice-dot { width: 12px; height: 12px; border-radius: 50%; background: #4b5563; }
+    .dice-dot.ok { background: #22c55e; box-shadow: 0 0 8px #22c55e; }
+    .dice-dot.single { background: #f97316; box-shadow: 0 0 8px #f97316; }
+    
+    .popup-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+      display: none; align-items: center; justify-content: center;
+      z-index: 999; padding: 20px;
+    }
+    .popup-box {
+      background: #1a1a2e; border: 2px solid #facc15; border-radius: 12px;
+      padding: 24px; max-width: 340px; width: 100%;
+    }
+    .popup-title { text-align: center; font-size: 1.1rem; font-weight: bold; color: #facc15; margin-bottom: 8px; }
+    .popup-sub { text-align: center; font-size: 0.85rem; color: #94a3b8; margin-bottom: 12px; }
+    
+    .step-indicator { display: flex; justify-content: center; gap: 10px; margin-bottom: 16px; }
+    .step-box {
+      width: 52px; height: 52px; border-radius: 8px; display: flex; align-items: center; justify-content: center;
+      border: 2px solid #374151; color: #6b7280; font-weight: bold; font-size: 1.4rem;
+      background: #1f2937; transition: all 0.2s;
+    }
+    .step-box.active { border-color: #facc15; color: #facc15; background: rgba(250,204,21,0.15); box-shadow: 0 0 10px rgba(250,204,21,0.4); }
+    .step-box.done { border-color: #22c55e; color: #22c55e; background: rgba(34,197,94,0.15); box-shadow: 0 0 8px rgba(34,197,94,0.35); }
+    
+    .display-box {
+      background: #0f0f1a; border: 2px solid #3b82f6; border-radius: 8px;
+      padding: 12px; text-align: center; margin-bottom: 16px;
+      font-size: 1.6rem; font-weight: bold; color: #facc15;
+      min-height: 60px; display: flex; align-items: center; justify-content: center;
+    }
+    
+    .num-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+    .num-btn {
+      padding: 18px 8px; border: 2px solid #3b82f6; border-radius: 8px;
+      background: rgba(59,130,246,0.15); color: #93c5fd;
+      font-size: 1.4rem; font-weight: bold; cursor: pointer; transition: all 0.15s;
+    }
+    .num-btn:hover, .num-btn:active { background: rgba(34,197,94,0.3); border-color: #22c55e; color: #fff; }
+    
+    .popup-row { display: flex; gap: 10px; }
+    .popup-btn { flex: 1; padding: 12px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 0.95rem; }
+    .cancel-btn { background: #374151; color: #d1d5db; }
+    .del-btn { background: #dc2626; color: #fff; }
+    
+    .tag-low { display:inline-block; background:#1e40af; color:#fff; padding:2px 8px; border-radius:4px; font-weight:bold; margin-left:6px; }
+    .tag-high { display:inline-block; background:#b91c1c; color:#fff; padding:2px 8px; border-radius:4px; font-weight:bold; margin-left:6px; }
+    .migrate-note { background: #1e293b; border: 1px solid #facc15; padding: 10px; border-radius: 6px; margin-bottom: 12px; font-size: 0.85rem; display: none; }
+  </style>
+</head>
+<body>
+
+<div class="migrate-note" id="migrateNote">
+  ✅ อัปเดตข้อมูลเก่าให้มีผลรวม+สูง/ต่ำเรียบร้อยแล้ว
+</div>
+
+<div class="top-bar">
+  <button class="nav-btn back-btn" onclick="history.back()">⬅️ ย้อนกลับ</button>
+  <button class="nav-btn logout-btn" onclick="ออกจากระบบ()">🚪 ออกจากระบบ</button>
+</div>
+
+<h1>🎙️ ตั้งค่า+เก็บข้อมูล เสียงลูกเต๋ากระทบจาน</h1>
+<p class="note">ใช้ลูกเต๋า 3 ลูก — ต้องมียอดกระทบต่อเนื่องกันถึงจะบันทึก</p>
+
+<div class="status wait" id="statusBox">
+  <div id="statusText">แตะกล่องดำล่างเพื่อเปิดไมโครโฟน...</div>
+  <div class="status-dice">
+    <span class="dice-dot" id="dotMic"></span> ไมโครโฟน
+    <span class="dice-dot" id="dotPeaks"></span> นับยอดกระทบ
+    <span class="dice-dot" id="dotDice"></span> ตรวจสอบ
+  </div>
+</div>
+
+<div class="sel-row">
+  <div class="sel-col">
+    <div class="sel-label">สภาพจาน</div>
+    <div class="btn-group">
+      <button class="btn on" data-plate="normal">ไม่อุดตูด</button>
+      <button class="btn off" data-plate="holed">อุดตูด</button>
+    </div>
+  </div>
+  <div class="sel-col">
+    <div class="sel-label">ชนิดลูกเต๋า</div>
+    <div class="btn-group">
+      <button class="btn on" data-dice="clear-big">ใส-ใหญ่</button>
+      <button class="btn off" data-dice="white-big">ขาว-ใหญ่</button>
+    </div>
+  </div>
+</div>
+
+<div class="canvas-box" id="canvasWrap">
+  <div style="text-align:center; color:#94a3b8; padding:4px 0 8px; font-size:0.85rem;" id="tapHint">👆 แตะที่นี่เพื่อเปิดไมโครโฟน</div>
+  <canvas id="waveCanvas"></canvas>
+</div>
+
+<div class="freq-display-row">
+  <div class="freq-col">
+    <div class="freq-label">ความถี่ปัจจุบัน</div>
+    <div class="freq-value freq-live" id="freqLive">0 Hz</div>
+  </div>
+  <div class="freq-col">
+    <div class="freq-label">ยอดกระทบที่นับได้</div>
+    <div class="freq-value freq-peak" id="peakCount">0 ยอด</div>
+  </div>
+</div>
+
+<div class="info-grid">
+  <div class="info-box">
+    <div class="info-label">กลุ่มปัจจุบัน</div>
+    <div class="info-val" id="groupName">กลุ่มที่ 1</div>
+  </div>
+  <div class="info-box">
+    <div class="info-label">รูปแบบที่ตรวจพบ</div>
+    <div class="info-val" id="waveShape">รอเสียงกระทบ...</div>
+  </div>
+  <div class="info-box">
+    <div class="info-label">เกณฑ์ผ่าน</div>
+    <div class="info-val" id="sensitivityVal">3,000–6,200 Hz + 2–4 ยอด</div>
+  </div>
+  <div class="info-box">
+    <div class="info-label">จำนวนที่เก็บ</div>
+    <div class="info-val" id="countVal">0 ชุด</div>
+  </div>
+</div>
+
+<button class="save-btn" id="saveBtn" disabled>💾 บันทึกผลลัพธ์</button>
+<div class="hint">
+💡 เขย่า 3 ลูกพร้อมกัน → ปุ่มบันทึกค้างไว้ 3 วินาที ✅<br>
+⚠️ กระทบครั้งเดียว (ลูกเดียว) → แจ้งแต่ไม่เปิดบันทึก<br>
+🛡️ เสียงพูด/ฮัม/เคาะครั้งเดียว → ไม่ทำงาน
+</div>
+
+<div class="sample-section">
+  <div class="sample-head">
+    <div class="sample-head-left">
+      <input type="checkbox" id="checkAll" onchange="เลือกทั้งหมด()">
+      <label for="checkAll">เลือกทั้งหมด</label>
+    </div>
+    <button class="del-selected-btn" id="delSelectedBtn" onclick="ลบที่เลือก()" disabled>🗑️ ลบที่เลือก</button>
+  </div>
+  <div class="sample-scroll-frame" id="sampleList"></div>
+</div>
+
+<div class="popup-overlay" id="numPopup">
+  <div class="popup-box">
+    <div class="popup-title" id="popupTitle">เลือกลูกที่ 1</div>
+    <div class="popup-sub" id="popupFreq">ความถี่: -- Hz</div>
+    <div class="step-indicator">
+      <div class="step-box" id="stepBox1">—</div>
+      <div class="step-box" id="stepBox2">—</div>
+      <div class="step-box" id="stepBox3">—</div>
+    </div>
+    <div class="display-box" id="displayBox">—</div>
+    <div class="num-grid">
+      <button class="num-btn" data-val="1">1</button>
+      <button class="num-btn" data-val="2">2</button>
+      <button class="num-btn" data-val="3">3</button>
+      <button class="num-btn" data-val="4">4</button>
+      <button class="num-btn" data-val="5">5</button>
+      <button class="num-btn" data-val="6">6</button>
+    </div>
+    <div class="popup-row">
+      <button class="popup-btn cancel-btn" onclick="ปิดป๊อปอัพ()">ยกเลิก</button>
+      <button class="popup-btn del-btn" onclick="ลบเลข()">ลบ/แก้ไข</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SAMPLE_KEY = 'diceSamples';
+const SAVE_BUTTON_ACTIVE_MS = 3000; // ✅ ค้างไว้ 3 วินาที
+
+const GROUPS = {
+  g1: { name: 'กลุ่มที่ 1', plate: 'normal', dice: 'clear-big' },
+  g2: { name: 'กลุ่มที่ 2', plate: 'normal', dice: 'white-big' },
+  g3: { name: 'กลุ่มที่ 3', plate: 'holed', dice: 'clear-big' },
+  g4: { name: 'กลุ่มที่ 4', plate: 'holed', dice: 'white-big' }
+};
+
+const FREQ_DETECT_START = 3000;
+const FREQ_MAX = 6200;
+const SPIKE_THRESHOLD = 120;
+const PEAK_WINDOW_MS = 450;
+const PEAK_MIN_COUNT = 2;
+const PEAK_MAX_COUNT = 4;
+const RESULT_DISPLAY_MS = 3000; // ✅ แสดงปุ่มบันทึก 3 วินาที
+
+const SUM_LOW_MAX = 10;
+const SUM_HIGH_MIN = 11;
+
+let saveTimeout = null;
+
+function อัปเดตข้อมูลเก่า() {
+  const all = getSamples();
+  let มีอะไรเปลี่ยนไหม = false;
+  
+  for (const key in all) {
+    const รายการ = all[key];
+    if (!Array.isArray(รายการ)) continue;
+    
+    รายการ.forEach(ชุด => {
+      if (ชุด.sum === undefined && Array.isArray(ชุด.nums) && ชุด.nums.length === 3) {
+        ชุด.sum = ชุด.nums.reduce((a,b) => a + b, 0);
+        ชุด.level = ชุด.sum <= SUM_LOW_MAX ? 'ต่ำ' : 'สูง';
+        มีอะไรเปลี่ยนไหม = true;
+      }
+    });
+  }
+  
+  if (มีอะไรเปลี่ยนไหม) {
+    saveSamples(all);
+    const note = document.getElementById('migrateNote');
+    note.style.display = 'block';
+    setTimeout(() => { note.style.opacity = '0'; note.style.transition = 'opacity 1s'; }, 3000);
+  }
+}
+
+function คำนวณผลรวมและระดับ(ตัวเลขทั้งหมด) {
+  const ผลรวม = ตัวเลขทั้งหมด.reduce((a,b) => a + b, 0);
+  const ระดับ = ผลรวม <= SUM_LOW_MAX ? 'ต่ำ' : 'สูง';
+  return { ผลรวม, ระดับ };
+}
+
+let selPlate = 'normal';
+let selDice = 'clear-big';
+let audioCtx = null;
+let analyser = null;
+let streamRef = null;
+let audioReady = false;
+
+let liveFreq = 0;
+let prevFreq = 0;
+let peakFreq = 0;
+let lastSavedFreq = 0;
+let soundDetected = false;
+
+let peakList = [];
+let windowStart = 0;
+let highestInWindow = 0;
+
+let selectedNumbers = [null, null, null];
+let currentStep = 0;
+let selectedIndices = new Set();
+
+const canvas = document.getElementById('waveCanvas');
+const ctx = canvas.getContext('2d');
+function resizeCanvas() {
+  canvas.width = canvas.offsetWidth * 2;
+  canvas.height = canvas.offsetHeight * 2;
+}
+window.onresize = resizeCanvas;
+resizeCanvas();
+
+function หากลุ่มปัจจุบัน() {
+  for (const [key, g] of Object.entries(GROUPS)) {
+    if (g.plate === selPlate && g.dice === selDice) return { ...g, key };
+  }
+  return null;
+}
+
+function อัพเดทกลุ่ม() {
+  const g = หากลุ่มปัจจุบัน();
+  document.getElementById('groupName').textContent = g ? g.name : 'ไม่พบกลุ่ม';
+  selectedIndices.clear();
+  อัพเดทรายการ();
+}
+
+document.querySelectorAll('[data-plate]').forEach(b => {
+  b.onclick = () => {
+    selPlate = b.dataset.plate;
+    document.querySelectorAll('[data-plate]').forEach(btn => {
+      btn.classList.toggle('on', btn === b);
+      btn.classList.toggle('off', btn !== b);
+    });
+    อัพเดทกลุ่ม();
+  };
+});
+
+document.querySelectorAll('[data-dice]').forEach(b => {
+  b.onclick = () => {
+    selDice = b.dataset.dice;
+    document.querySelectorAll('[data-dice]').forEach(btn => {
+      btn.classList.toggle('on', btn === b);
+      btn.classList.toggle('off', btn !== b);
+    });
+    อัพเดทกลุ่ม();
+  };
+});
+
+async function เริ่มไมโครโฟน() {
+  if (audioReady) return;
+  const tapHint = document.getElementById('tapHint');
+  tapHint.style.display = 'none';
+  document.getElementById('statusText').textContent = 'กำลังเปิดไมโครโฟน...';
+  
+  try {
+    streamRef = await navigator.mediaDevices.getUserMedia({
+      audio: { echoCancellation: true, noiseSuppression: true }
+    });
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioCtx.createAnalyser();
+    analyser.fftSize = 4096;
+    analyser.smoothingTimeConstant = 0.1;
+    const src = audioCtx.createMediaStreamSource(streamRef);
+    src.connect(analyser);
+    
+    audioReady = true;
+    document.getElementById('statusBox').className = 'status wait';
+    document.getElementById('dotMic').classList.add('ok');
+    
+    document.getElementById('statusText').textContent = '✅ พร้อม — เขย่า 3 ลูกพร้อมกัน';
+    document.getElementById('waveShape').textContent = 'รอเสียงกระทบ...';
+    draw();
+    
+  } catch(e) {
+    tapHint.style.display = 'block';
+    tapHint.textContent = '❌ ไม่สามารถเปิดไมโครโฟนได้';
+    alert('กรุณาอนุญาตใช้ไมโครโฟนในการตั้งค่าเบราว์เซอร์');
+  }
+}
+
+document.getElementById('canvasWrap').onclick = เริ่มไมโครโฟน;
+
+function คำนวณความถี่ทั้งหมด(freqData, sampleRate) {
+  let maxMag = 0, maxBin = 1;
+  for (let i = 1; i < freqData.length; i++) {
+    if (freqData[i] > maxMag) {
+      maxMag = freqData[i];
+      maxBin = i;
+    }
+  }
+  if (maxMag === 0) return 0;
+  const binHz = sampleRate / analyser.fftSize;
+  return Math.round(maxBin * binHz);
+}
+
+function คำนวณความถี่ในช่วง(freqData, sampleRate, startHz, endHz) {
+  const startBin = Math.floor((startHz * analyser.fftSize) / sampleRate);
+  const endBin = Math.ceil((endHz * analyser.fftSize) / sampleRate);
+  let maxMag = 0, maxBin = startBin;
+  for (let i = startBin; i < endBin && i < freqData.length; i++) {
+    if (freqData[i] > maxMag) {
+      maxMag = freqData[i];
+      maxBin = i;
+    }
+  }
+  if (maxMag === 0) return 0;
+  const binHz = sampleRate / analyser.fftSize;
+  return Math.round(maxBin * binHz);
+}
+
+function รีเซ็ตการนับยอด() {
+  peakList = [];
+  windowStart = 0;
+  highestInWindow = 0;
+}
+
+function ปิดปุ่มบันทึกชั่วคราว() {
+  const saveBtn = document.getElementById('saveBtn');
+  saveBtn.disabled = true;
+  saveBtn.classList.remove('ready-now');
+}
+
+function draw() {
+  if (!audioReady || !analyser) {
+    requestAnimationFrame(draw);
+    return;
+  }
+  requestAnimationFrame(draw);
+  
+  const bufLen = analyser.frequencyBinCount;
+  const freqData = new Uint8Array(bufLen);
+  const timeData = new Uint8Array(bufLen);
+  
+  analyser.getByteFrequencyData(freqData);
+  analyser.getByteTimeDomainData(timeData);
+  
+  const sr = audioCtx.sampleRate || 44100;
+  const now = Date.now();
+  
+  liveFreq = คำนวณความถี่ทั้งหมด(freqData, sr);
+  const detectFreq = คำนวณความถี่ในช่วง(freqData, sr, FREQ_DETECT_START, FREQ_MAX);
+  
+  const freqJump = detectFreq - prevFreq;
+  prevFreq = detectFreq;
+  
+  const inRange = detectFreq >= FREQ_DETECT_START && detectFreq <= FREQ_MAX;
+  const isSpike = inRange && freqJump >= SPIKE_THRESHOLD;
+  
+  if (isSpike) {
+    if (peakList.length === 0 || now - windowStart > PEAK_WINDOW_MS) {
+      รีเซ็ตการนับยอด();
+      windowStart = now;
+    }
+    peakList.push({ time: now, freq: detectFreq });
+    if (detectFreq > highestInWindow) {
+      highestInWindow = detectFreq;
+      peakFreq = detectFreq;
+    }
+  }
+  
+  let peakCount = peakList.length;
+  let patternType = 'รอเสียงกระทบ...';
+  let isPatternValid = false;
+  let isSingleHit = false;
+  
+  if (peakList.length > 0) {
+    if (now - windowStart < PEAK_WINDOW_MS) {
+      patternType = `นับยอด... ${peakCount}`;
+    } else {
+      if (peakCount >= PEAK_MIN_COUNT && peakCount <= PEAK_MAX_COUNT) {
+        patternType = `✅ ${peakCount} ยอด — ตรงรูปแบบ 3 ลูก`;
+        isPatternValid = true;
+        soundDetected = true;
+      } else if (peakCount === 1) {
+        patternType = `⚠️ 1 ยอด — กระทบครั้งเดียว (ลูกเดียว)`;
+        isSingleHit = true;
+      } else if (peakCount > PEAK_MAX_COUNT) {
+        patternType = `❌ ${peakCount} ยอด — มากเกินไป`;
+      } else {
+        patternType = `❌ ${peakCount} ยอด — ไม่พอ`;
+      }
+      
+      if (isPatternValid) {
+        if (!saveTimeout) {
+          saveTimeout = setTimeout(() => {
+            ปิดปุ่มบันทึกชั่วคราว();
+            saveTimeout = null;
+          }, RESULT_DISPLAY_MS); // ✅ 3 วินาที
+        }
+      }
+      
+      if (now - windowStart > PEAK_WINDOW_MS + 1000 && !isPatternValid) {
+        รีเซ็ตการนับยอด();
+        soundDetected = false;
+      }
+    }
+  }
+  
+  document.getElementById('freqLive').textContent = liveFreq + ' Hz';
+  document.getElementById('peakCount').textContent = peakCount + ' ยอด';
+  
+  const waveShapeEl = document.getElementById('waveShape');
+  const dotPeaks = document.getElementById('dotPeaks');
+  const saveBtn = document.getElementById('saveBtn');
+  const statusBox = document.getElementById('statusBox');
+  
+  waveShapeEl.textContent = patternType;
+  
+  if (isPatternValid) {
+    waveShapeEl.style.color = '#4ade80';
+    dotPeaks.classList.remove('single');
+    dotPeaks.classList.add('ok');
+    statusBox.className = 'status ok';
+    saveBtn.disabled = false;
+    saveBtn.classList.add('ready-now');
+  } else if (isSingleHit) {
+    waveShapeEl.style.color = '#f97316';
+    dotPeaks.classList.remove('ok');
+    dotPeaks.classList.add('single');
+    statusBox.className = 'status single';
+    ปิดปุ่มบันทึกชั่วคราว();
+  } else if (liveFreq > 0 && !inRange) {
+    waveShapeEl.textContent = `⏱️ นอกช่วง 3,000–6,200 Hz — ไม่ทำงาน`;
+    waveShapeEl.style.color = '#f97316';
+    dotPeaks.classList.remove('ok', 'single');
+    statusBox.className = 'status wait';
+    ปิดปุ่มบันทึกชั่วคราว();
+  } else {
+    waveShapeEl.style.color = '#94a3b8';
+    dotPeaks.classList.remove('ok', 'single');
+    statusBox.className = 'status wait';
+    ปิดปุ่มบันทึกชั่วคราว();
+  }
+  
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = isPatternValid ? '#4ade80' : isSingleHit ? '#f97316' : '#facc15';
+  ctx.beginPath();
+  const w = canvas.width / bufLen;
+  let x = 0;
+  for (let i = 0; i < bufLen; i++) {
+    const y = (timeData[i] / 128.0) * canvas.height / 2;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    x += w;
+  }
+  ctx.stroke();
+}
+
+function getSamples() {
+  const d = localStorage.getItem(SAMPLE_KEY);
+  if (!d) return {};
+  try {
+    const parsed = JSON.parse(d);
+    if (Array.isArray(parsed)) return { g1: parsed };
+    return parsed;
+  } catch { return {}; }
+}
+function saveSamples(data) {
+  localStorage.setItem(SAMPLE_KEY, JSON.stringify(data));
+}
+
+function อัพเดทรายการ() {
+  const list = document.getElementById('sampleList');
+  const g = หากลุ่มปัจจุบัน();
+  const all = getSamples();
+  const items = g ? (all[g.key] || []) : [];
+  
+  document.getElementById('countVal').textContent = items.length + ' ชุด';
+  list.innerHTML = '';
+  
+  if (items.length === 0) {
+    list.innerHTML = '<div class="empty-msg">ยังไม่มีข้อมูลที่บันทึกไว้ในกลุ่มนี้</div>';
+    document.getElementById('delSelectedBtn').disabled = true;
+    document.getElementById('checkAll').checked = false;
+    return;
+  }
+  
+  items.forEach((s, idx) => {
+    const isSel = selectedIndices.has(idx);
+    const div = document.createElement('div');
+    div.className = `sample-item ${isSel ? 'selected' : ''}`;
+    
+    const numsText = Array.isArray(s.nums) ? s.nums.join(', ') : '-';
+    const sumText = s.sum !== undefined ? ` | ผลรวม: ${s.sum}` : '';
+    const levelHtml = s.level ? (s.level === 'สูง' 
+      ? `<span class="tag-high">สูง</span>` 
+      : `<span class="tag-low">ต่ำ</span>`) : '';
+    
+    div.innerHTML = `
+      <input type="checkbox" class="sample-check" data-idx="${idx}" ${isSel ? 'checked' : ''} onchange="สลับเลือก(${idx})">
+      <div class="sample-info">
+        <strong>ชุดที่ ${idx+1}</strong>${levelHtml}<br>
+        ความถี่: ${s.freq || '--'} Hz | ยอด: ${s.peaks || '--'}<br>
+        เลข: ${numsText}${sumText}<br>
+        <small style="color:#94a3b8">${s.time || ''}</small>
+      </div>
+      <button class="sample-del-one" onclick="ลบรายการเดี่ยว(${idx})">ลบ</button>
+    `;
+    list.appendChild(div);
+  });
+  
+  document.getElementById('delSelectedBtn').disabled = selectedIndices.size === 0;
+  document.getElementById('checkAll').checked = items.length > 0 && selectedIndices.size === items.length;
+}
+
+function สลับเลือก(idx) {
+  selectedIndices.has(idx) ? selectedIndices.delete(idx) : selectedIndices.add(idx);
+  อัพเดทรายการ();
+}
+
+function เลือกทั้งหมด() {
+  const g = หากลุ่มปัจจุบัน();
+  const all = getSamples();
+  const items = g ? (all[g.key] || []) : [];
+  const checkAll = document.getElementById('checkAll').checked;
+  selectedIndices.clear();
+  if (checkAll) items.forEach((_, i) => selectedIndices.add(i));
+  อัพเดทรายการ();
+}
+
+function ลบรายการเดี่ยว(idx) {
+  if (!confirm('ยืนยันลบรายการนี้?')) return;
+  const g = หากลุ่มปัจจุบัน();
+  const all = getSamples();
+  if (g && all[g.key]) {
+    all[g.key].splice(idx, 1);
+    saveSamples(all);
+    selectedIndices.delete(idx);
+    อัพเดทรายการ();
+  }
+}
+
+function ลบที่เลือก() {
+  if (selectedIndices.size === 0) return;
+  if (!confirm(`ยืนยันลบ ${selectedIndices.size} รายการที่เลือก?`)) return;
+  const g = หากลุ่มปัจจุบัน();
+  const all = getSamples();
+  if (!g || !all[g.key]) return;
+  all[g.key] = all[g.key].filter((_, i) => !selectedIndices.has(i));
+  saveSamples(all);
+  selectedIndices.clear();
+  อัพเดทรายการ();
+}
+
+document.getElementById('saveBtn').onclick = () => {
+  if (!soundDetected || peakFreq === 0) {
+    alert('ยังไม่ตรงรูปแบบเสียง 3 ลูก กรุณาเขย่าพร้อมกันอีกครั้ง');
+    return;
+  }
+  if (saveTimeout) {
+    clearTimeout(saveTimeout);
+    saveTimeout = null;
+  }
+  lastSavedFreq = peakFreq;
+  currentStep = 0;
+  selectedNumbers = [null, null, null];
+  document.getElementById('popupFreq').textContent = `ความถี่: ${lastSavedFreq} Hz | ยอด: ${peakList.length}`;
+  อัพเดทขั้นตอน();
+  document.getElementById('numPopup').style.display = 'flex';
+};
+
+document.querySelectorAll('.num-btn').forEach(btn => {
+  btn.onclick = () => {
+    const val = parseInt(btn.dataset.val);
+    selectedNumbers[currentStep] = val;
+    document.getElementById('displayBox').textContent = val;
+    อัพเดทขั้นตอน();
+    setTimeout(() => {
+      if (currentStep < 2) {
+        currentStep++;
+        อัพเดทขั้นตอน();
+      } else {
+        ยืนยันบันทึก();
+      }
+    }, 300);
+  };
+});
+
+function อัพเดทขั้นตอน() {
+  const titles = ['เลือกลูกที่ 1', 'เลือกลูกที่ 2', 'เลือกลูกที่ 3'];
+  document.getElementById('popupTitle').textContent = titles[currentStep];
+  for (let i = 1; i <= 3; i++) {
+    const box = document.getElementById(`stepBox${i}`);
+    const num = selectedNumbers[i - 1];
+    box.textContent = num ?? '—';
+    box.classList.remove('active', 'done');
+    if (i - 1 === currentStep) box.classList.add('active');
+    else if (num !== null) box.classList.add('done');
+  }
+  document.getElementById('displayBox').textContent = selectedNumbers[currentStep] || '—';
+}
+
+function ลบเลข() {
+  if (selectedNumbers[currentStep] !== null) {
+    selectedNumbers[currentStep] = null;
+    อัพเดทขั้นตอน();
+  } else if (currentStep > 0) {
+    currentStep--;
+    อัพเดทขั้นตอน();
+  }
+}
+
+function ปิดป๊อปอัพ() {
+  document.getElementById('numPopup').style.display = 'none';
+  selectedNumbers = [null, null, null];
+  currentStep = 0;
+}
+
+function ยืนยันบันทึก() {
+  const g = หากลุ่มปัจจุบัน();
+  if (!g) { alert('ไม่พบกลุ่ม'); return; }
+  
+  const { ผลรวม, ระดับ } = คำนวณผลรวมและระดับ(selectedNumbers);
+  
+  const all = getSamples();
+  if (!all[g.key]) all[g.key] = [];
+  all[g.key].push({
+    freq: lastSavedFreq,
+    nums: [...selectedNumbers],
+    sum: ผลรวม,
+    level: ระดับ,
+    peaks: peakList.length,
+    time: new Date().toLocaleString('th-TH')
+  });
+  saveSamples(all);
+  
+  alert(`✅ บันทึกสำเร็จ!
+กลุ่ม: ${g.name}
+ความถี่: ${lastSavedFreq} Hz
+เลข: ${selectedNumbers.join(', ')}
+ผลรวม: ${ผลรวม}
+ระดับ: ${ระดับ}
+ยอด: ${peakList.length}`);
+  
+  ปิดป๊อปอัพ();
+  รีเซ็ตการนับยอด();
+  peakFreq = 0;
+  liveFreq = 0;
+  soundDetected = false;
+  if (saveTimeout) clearTimeout(saveTimeout);
+  saveTimeout = null;
+  document.getElementById('freqLive').textContent = '0 Hz';
+  document.getElementById('peakCount').textContent = '0 ยอด';
+  อัพเดทรายการ();
+}
+
+function ออกจากระบบ() {
+  if (confirm('ยืนยันออกจากระบบ?')) {
+    localStorage.removeItem('loggedIn');
+    localStorage.removeItem('userPhone');
+    localStorage.removeItem('userName');
+    localStorage.removeItem('userRole');
+    if (streamRef) streamRef.getTracks().forEach(t => t.stop());
+    if (audioCtx) audioCtx.close();
+    location.href = 'ล็อกอิน.html';
+  }
+}
+
+อัปเดตข้อมูลเก่า();
+อัพเดทกลุ่ม();
+</script>
+
+</body>
+</html>
+

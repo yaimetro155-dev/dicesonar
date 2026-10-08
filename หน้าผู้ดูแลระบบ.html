@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>หน้าผู้ดูแลระบบ</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: sans-serif; }
+body {
+  background: #12121f; min-height: 100vh; padding: 20px 16px; color: #fff; padding-bottom: 110px;
+}
+.header { text-align: center; margin-bottom: 20px; }
+.header h1 { font-size: 1.4rem; color: #fdd835; margin-bottom: 6px; }
+.header p { color: #94a3b8; font-size: 0.9rem; }
+
+@keyframes pulseAlert {
+  0% { background-color: rgba(251, 191, 36, 0.25); box-shadow: 0 0 4px rgba(251,191,36,0.4); }
+  50% { background-color: rgba(251, 191, 36, 0.45); box-shadow: 0 0 12px rgba(251,191,36,0.7); }
+  100% { background-color: rgba(251, 191, 36, 0.25); box-shadow: 0 0 4px rgba(251,191,36,0.4); }
+}
+.pulse-bg { animation: pulseAlert 1.2s infinite; }
+
+.tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+.tab-btn {
+  flex: 1; min-width: 90px; padding: 12px 8px; border: none; border-radius: 8px;
+  background: #1f2937; color: #cbd5e1; font-size: 0.8rem; font-weight: bold; cursor: pointer;
+  transition: 0.2s;
+}
+.tab-btn.active { background: #2563eb; color: #fff; }
+.tab-btn.has-pending { border: 2px solid #fbbf24; }
+.tab-btn.has-pending.pulse-bg { animation: pulseAlert 1.2s infinite; }
+
+.search-bar { margin-bottom: 16px; }
+.search-bar input {
+  width: 100%; padding: 12px 16px; border-radius: 10px; border: none;
+  background: #1f2937; color: #fff; font-size: 0.95rem; outline: none;
+}
+
+.member-card {
+  background: #1e293b; border-radius: 12px; padding: 16px; margin-bottom: 12px;
+  border-left: 4px solid #3b82f6; transition: 0.2s;
+}
+.member-card.pending-status { border-left-color: #fbbf24; animation: pulseAlert 1.2s infinite; }
+.member-card-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px; }
+.member-name { font-weight: bold; font-size: 1rem; }
+.member-role { font-size: 0.75rem; padding: 2px 8px; border-radius: 10px; background: #3b82f6; }
+.member-role.admin { background: #f59e0b; color: #000; }
+.member-role.pending { background: #fbbf24; color: #000; }
+.member-info { font-size: 0.85rem; color: #94a3b8; margin-bottom: 12px; line-height: 1.5; }
+.member-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+.member-btn {
+  padding: 10px 14px; border: none; border-radius: 8px; font-size: 0.85rem; font-weight: bold; cursor: pointer;
+}
+.btn-blue { background: #2563eb; color: #fff; }
+.btn-purple { background: #7c3aed; color: #fff; }
+.btn-red { background: #dc2626; color: #fff; }
+.btn-green { background: #10b981; color: #fff; }
+.btn-orange { background: #f97316; color: #fff; }
+.btn-sm { padding: 6px 10px; font-size: 0.75rem; }
+
+.section { display: none; }
+.section.active { display: block; }
+
+.payment-item {
+  background: #1e293b; border-radius: 10px; padding: 14px; margin-bottom: 10px;
+  border-left: 4px solid #10b981; display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;
+}
+.payment-item.pending { border-left-color: #fbbf24; animation: pulseAlert 1.2s infinite; }
+.payment-content { flex: 1; }
+.payment-delete-btn {
+  flex-shrink: 0; padding: 8px 12px; border: none; border-radius: 6px;
+  background: #991b1b; color: #fff; font-size: 0.8rem; cursor: pointer;
+}
+
+.delete-all-bar { margin-top: 16px; padding-top: 16px; border-top: 1px solid #2a2a4a; }
+.delete-all-btn {
+  width: 100%; padding: 14px; border: none; border-radius: 10px;
+  background: #991b1b; color: #fff; font-weight: bold; font-size: 1rem; cursor: pointer;
+}
+
+.finance-summary {
+  display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px;
+}
+.finance-card {
+  background: #1e293b; border-radius: 10px; padding: 14px; text-align: center;
+}
+.finance-card.income { border-top: 3px solid #10b981; }
+.finance-card.expense { border-top: 3px solid #ef4444; }
+.finance-card.balance { border-top: 3px solid #facc15; }
+.finance-label { font-size: 0.8rem; color: #94a3b8; margin-bottom: 4px; }
+.finance-value { font-size: 1.2rem; font-weight: bold; }
+.income .finance-value { color: #10b981; }
+.expense .finance-value { color: #ef4444; }
+.balance .finance-value { color: #facc15; }
+
+.finance-form {
+  background: #1e293b; border-radius: 12px; padding: 16px; margin-bottom: 16px;
+}
+.finance-form h3 { font-size: 1rem; margin-bottom: 12px; color: #facc15; }
+.form-row { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.form-row select, .form-row input {
+  flex: 1; min-width: 120px; padding: 10px 12px; border-radius: 8px; border: none;
+  background: #2a2a4a; color: #fff; font-size: 0.9rem;
+}
+
+.filter-bar {
+  background: #1e293b; border-radius: 12px; padding: 16px; margin-bottom: 16px;
+}
+.filter-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; align-items: center; }
+.filter-row label { font-size: 0.85rem; color: #94a3b8; margin-right: 4px; white-space: nowrap; }
+.filter-row input, .filter-row button {
+  padding: 10px 12px; border-radius: 8px; border: none; font-size: 0.9rem;
+}
+.filter-row input { background: #2a2a4a; color: #fff; flex: 1; min-width: 110px; }
+.filter-row button { font-weight: bold; cursor: pointer; }
+.btn-filter { background: #2563eb; color: #fff; }
+.btn-show-all { background: #7c3aed; color: #fff; }
+
+.finance-list {
+  background: #1e293b; border-radius: 12px; padding: 16px;
+}
+.finance-list h3 { font-size: 1rem; margin-bottom: 12px; color: #94a3b8; }
+.finance-item {
+  background: #2a2a4a; border-radius: 8px; padding: 12px; margin-bottom: 8px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.finance-item.income { border-left: 3px solid #10b981; }
+.finance-item.expense { border-left: 3px solid #ef4444; }
+.finance-amount { font-weight: bold; font-size: 1rem; }
+.income .finance-amount { color: #10b981; }
+.expense .finance-amount { color: #ef4444; }
+.finance-meta { font-size: 0.75rem; color: #6b7280; margin-top: 4px; }
+
+.empty-text { text-align: center; color: #6b7280; padding: 30px; }
+.initial-hint { text-align: center; color: #6b7280; padding: 20px; font-style: italic; }
+
+.setting-group {
+  background: #1e293b; border-radius: 12px; padding: 20px; margin-bottom: 16px;
+}
+.setting-group h3 { font-size: 1rem; margin-bottom: 16px; color: #facc15; }
+.setting-row { margin-bottom: 12px; }
+.setting-row label {
+  display: block; color: #94a3b8; font-size: 0.9rem; margin-bottom: 6px;
+}
+.setting-row input {
+  width: 100%; padding: 12px 14px; border-radius: 8px; border: none;
+  background: #2a2a4a; color: #fff; font-size: 0.95rem;
+}
+.save-btn {
+  width: 100%; padding: 14px; border: none; border-radius: 10px;
+  background: #10b981; color: #fff; font-weight: bold; font-size: 1rem; cursor: pointer;
+  margin-top: 8px;
+}
+
+.logout-bar {
+  position: fixed; bottom: 0; left: 0; right: 0; padding: 12px 16px; background: rgba(18,18,31,0.95); border-top: 1px solid #1f2937;
+}
+.logout-btn {
+  width: 100%; padding: 14px; border: none; border-radius: 10px; background: #991b1b; color: #fff; font-weight: bold; font-size: 1rem; cursor: pointer;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🔐 หน้าผู้ดูแลระบบ</h1>
+  <p>จัดการข้อมูลสมาชิก & ตรวจหลักฐาน</p>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" id="tabMember" onclick="เปลี่ยนแท็บ('member')">👤 สมาชิก</button>
+  <button class="tab-btn" id="tabPending" onclick="เปลี่ยนแท็บ('pending')">📋 ตรวจหลักฐาน</button>
+  <button class="tab-btn" id="tabHistory" onclick="เปลี่ยนแท็บ('history')">📜 ประวัติ</button>
+  <button class="tab-btn" id="tabFinance" onclick="เปลี่ยนแท็บ('finance')">💰 รายรับ-จ่าย</button>
+  <button class="tab-btn" id="tabSetting" onclick="เปลี่ยนแท็บ('setting')">⚙️ ตั้งค่า</button>
+  <button class="tab-btn" id="tabRecord" onclick="location.href='หน้าอัดเสียง.html'">🎙️ บันทึกเสียง</button>
+</div>
+
+<div class="section active" id="secMember">
+  <div class="search-bar">
+    <input type="text" id="searchInput" placeholder="ค้นหาด้วยชื่อ / เบอร์..." oninput="ค้นหาสมาชิก(this.value)">
+  </div>
+  <div id="memberList"></div>
+</div>
+
+<div class="section" id="secPending">
+  <div id="pendingList"></div>
+</div>
+
+<div class="section" id="secHistory">
+  <div id="historyList"></div>
+  <div class="delete-all-bar">
+    <button class="delete-all-btn" onclick="ลบประวัติทั้งหมด()">🗑️ ล้างประวัติทั้งหมด</button>
+  </div>
+</div>
+
+<div class="section" id="secFinance">
+  <div class="finance-summary">
+    <div class="finance-card income">
+      <div class="finance-label">📥 รายรับรวม</div>
+      <div class="finance-value" id="sumIncome">0 บาท</div>
+    </div>
+    <div class="finance-card expense">
+      <div class="finance-label">📤 รายจ่ายรวม</div>
+      <div class="finance-value" id="sumExpense">0 บาท</div>
+    </div>
+    <div class="finance-card balance">
+      <div class="finance-label">💰 คงเหลือสุทธิ</div>
+      <div class="finance-value" id="sumBalance">0 บาท</div>
+    </div>
+  </div>
+
+  <div class="finance-form">
+    <h3>➕ บันทึกรายการ</h3>
+    <div class="form-row">
+      <select id="finType">
+        <option value="income">📥 รายรับ</option>
+        <option value="expense">📤 รายจ่าย</option>
+      </select>
+      <input type="number" id="finAmount" placeholder="จำนวนเงิน" step="1">
+      <input type="text" id="finNote" placeholder="รายละเอียด/หมายเหตุ">
+    </div>
+    <button class="member-btn btn-green" onclick="บันทึกรายการการเงิน()">✅ บันทึก</button>
+  </div>
+
+  <div class="filter-bar">
+    <div class="filter-row">
+      <label>📅 เริ่ม:</label>
+      <input type="date" id="dateStart">
+      <label>ถึง:</label>
+      <input type="date" id="dateEnd">
+    </div>
+    <div class="filter-row">
+      <button class="btn-filter" onclick="กรองตามช่วงเวลา()">🔍 กรอง</button>
+      <button class="btn-show-all" onclick="แสดงทั้งหมด()">📋 แสดงทั้งหมด</button>
+    </div>
+  </div>
+
+  <div class="finance-list" id="financeListContainer">
+    <h3>📋 แสดงรายการ</h3>
+    <div id="financeList">
+      <div class="initial-hint">เลือกช่วงเวลาแล้วกด "กรอง" หรือ "แสดงทั้งหมด" เพื่อแสดงรายการ</div>
+    </div>
+    <div class="delete-all-bar" id="deleteShownArea" style="display:none;">
+      <button class="delete-all-btn" onclick="ลบเฉพาะที่แสดงอยู่()">🗑️ ลบรายการที่แสดงทั้งหมด</button>
+    </div>
+  </div>
+</div>
+
+<div class="section" id="secSetting">
+  <div class="setting-group">
+    <h3>🏦 ข้อมูลบัญชีผู้รับเงิน</h3>
+    <div class="setting-row">
+      <label>ชื่อบัญชี</label>
+      <input type="text" id="accName" placeholder="เช่น นาย ทรงพล พานทอง">
+    </div>
+    <div class="setting-row">
+      <label>เลขที่บัญชี</label>
+      <input type="text" id="accNumber" placeholder="เช่น 0623989089">
+    </div>
+    <div class="setting-row">
+      <label>ชื่อธนาคาร</label>
+      <input type="text" id="accBank" placeholder="เช่น ธนาคารกสิกรไทย">
+    </div>
+  </div>
+
+  <div class="setting-group">
+    <h3>💰 ราคาค่าบริการ / แพ็กเกจ</h3>
+    <div class="setting-row">
+      <label>แพ็กเกจโปรโมชั่น (ครั้งแรก) — จำนวนเงินเท่านั้น เช่น 200</label>
+      <input type="number" id="promoPriceNum" placeholder="200" step="1">
+    </div>
+    <div class="setting-row">
+      <label>แพ็กเกจปกติ — จำนวนเงินเท่านั้น เช่น 300</label>
+      <input type="number" id="normalPriceNum" placeholder="300" step="1">
+    </div>
+  </div>
+
+  <button class="save-btn" onclick="บันทึกการตั้งค่าทั้งหมด()">✅ บันทึกการตั้งค่า</button>
+</div>
+
+<div class="logout-bar">
+  <button class="logout-btn" onclick="ออกจากระบบ()">🚪 ออกจากระบบ</button>
+</div>
+
+<script>
+const MAIN_KEY = 'allAccounts';
+const FINANCE_KEY = 'financeRecords';
+const SETTINGS_KEY = 'systemSettings'; // ตรงกับหน้าชำระเงิน
+const PROCESSING_KEY = '_adminProcessingLock';
+
+let allAccounts = {};
+let allFinanceRecords = [];
+let currentShownIds = [];
+
+function แค่ตัวเลข(ค่า) {
+  if (typeof ค่า === 'number') return ค่า;
+  if (!ค่า) return 0;
+  const ตัวเลข = String(ค่า).replace(/[^0-9.]/g, '');
+  return parseFloat(ตัวเลข) || 0;
+}
+
+function สร้างรหัสจับคู่(phone, amount, time) {
+  const เวลาปัด = typeof time === 'number' ? Math.floor(time / 60000) : time;
+  return `${phone}-${แค่ตัวเลข(amount)}-${เวลาปัด}`;
+}
+
+function โหลดข้อมูล() {
+  try {
+    const raw = localStorage.getItem(MAIN_KEY);
+    allAccounts = raw ? JSON.parse(raw) : {};
+  } catch { allAccounts = {}; }
+  
+  ตรวจสอบการแจ้งเตือน();
+  แสดงรายการสมาชิก();
+  แสดงรายการรอตรวจ();
+  แสดงประวัติทั้งหมด();
+  โหลดค่าการตั้งค่า();
+  อัปเดตยอดสรุปทันที();
+}
+
+function อัปเดตยอดสรุปทันที() {
+  const records = อ่านรายการการเงิน();
+  let รวมรับ = 0, รวมจ่าย = 0;
+  records.forEach(r => {
+    const จำนวน = แค่ตัวเลข(r.amount);
+    if (r.type === 'income') รวมรับ += จำนวน;
+    else รวมจ่าย += จำนวน;
+  });
+  const คงเหลือ = รวมรับ - รวมจ่าย;
+  
+  document.getElementById('sumIncome').textContent = รวมรับ.toLocaleString('th-TH') + ' บาท';
+  document.getElementById('sumExpense').textContent = รวมจ่าย.toLocaleString('th-TH') + ' บาท';
+  document.getElementById('sumBalance').textContent = คงเหลือ.toLocaleString('th-TH') + ' บาท';
+}
+
+function ตรวจสอบการแจ้งเตือน() {
+  let มีรอตรวจ = false;
+  for (const key in allAccounts) {
+    if (allAccounts[key].pendingPayment && allAccounts[key].pendingPayment.status === 'pending') {
+      มีรอตรวจ = true;
+      break;
+    }
+  }
+  const btn = document.getElementById('tabPending');
+  if (มีรอตรวจ) {
+    btn.classList.add('has-pending', 'pulse-bg');
+  } else {
+    btn.classList.remove('has-pending', 'pulse-bg');
+  }
+}
+
+function แสดงรายการสมาชิก(คำค้น = '') {
+  const container = document.getElementById('memberList');
+  container.innerHTML = '';
+  
+  const sortedKeys = Object.keys(allAccounts).sort((a, b) => {
+    if (a === 'admin') return -1;
+    if (b === 'admin') return 1;
+    return 0;
+  });
+
+  sortedKeys.forEach(phone => {
+    const u = allAccounts[phone];
+    const ชื่อ = u.name || 'ไม่ระบุ';
+    const บทบาท = u.role === 'admin' ? 'ผู้ดูแลระบบ' : 'สมาชิก';
+    const สถานะรอ = !!u.pendingPayment && u.pendingPayment.status === 'pending';
+    
+    if (คำค้น && !ชื่อ.includes(คำค้น) && !phone.includes(คำค้น)) return;
+
+    const เวลาเหลือ = u.expireTime ? คำนวณเวลาเหลือ(u.expireTime) : (u.role === 'admin' ? 'ไม่จำกัด' : '0 วัน (ไม่มีสิทธิ์)');
+    const คลาสสถานะ = สถานะรอ ? 'pending-status' : '';
+
+    container.innerHTML += `
+      <div class="member-card ${คลาสสถานะ}">
+        <div class="member-card-header">
+          <div>
+            <div class="member-name">${ชื่อ}</div>
+            <span class="member-role ${u.role === 'admin' ? 'admin' : ''} ${สถานะรอ ? 'pending' : ''}">
+              ${u.role === 'admin' ? '👑 ' : ''}${บทบาท}
+              ${สถานะรอ ? ' ⏳ รอตรวจ' : ''}
+            </span>
+          </div>
+          ${u.role !== 'admin' ? `<button class="member-btn btn-red btn-sm" onclick="ลบบัญชี('${phone}')">ลบ</button>` : '<span style="font-size:0.8rem; color:#94a3b8;">(แอดมิน)</span>'}
+        </div>
+        <div class="member-info">
+          📞 ${phone}<br>
+          ⏳ เหลือเวลาใช้งาน: ${เวลาเหลือ}
+        </div>
+        ${u.role !== 'admin' ? `
+        <div class="member-buttons">
+          <button class="member-btn btn-blue btn-sm" onclick="เปลี่ยนรหัส('${phone}')">เปลี่ยนรหัส</button>
+          <button class="member-btn btn-purple btn-sm" onclick="ดูประวัติ('${phone}')">ประวัติเติมเงิน</button>
+        </div>` : ''}
+      </div>
+    `;
+  });
+}
+
+function คำนวณเวลาเหลือ(timestamp) {
+  if (!timestamp) return 'หมดเวลา';
+  const ตอนนี้ = Date.now();
+  if (timestamp <= ตอนนี้) return 'หมดเวลา';
+  const วินาที = Math.floor((timestamp - ตอนนี้) / 1000);
+  const วัน = Math.floor(วินาที / 86400);
+  const ชม = Math.floor((วินาที % 86400) / 3600);
+  if (วัน > 0) return `${วัน} วัน ${ชม} ชม.`;
+  return `${ชม} ชม. ${Math.floor((วินาที % 3600) / 60)} นาที`;
+}
+
+function แสดงรายการรอตรวจ() {
+  const container = document.getElementById('pendingList');
+  container.innerHTML = '';
+  let มีรายการ = false;
+
+  for (const phone in allAccounts) {
+    const u = allAccounts[phone];
+    if (!u.pendingPayment || u.pendingPayment.status !== 'pending') continue;
+    มีรายการ = true;
+    const p = u.pendingPayment;
+    const ชื่อ = u.name || 'ไม่ระบุ';
+    const รูป = p.proofImage || '';
+    
+    // ดึงราคาล่าสุดมาแสดง
+    const s = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+    const ราคาโปร = s.promoPrice || 200;
+    const ราคาเดิม = s.normalPrice || 300;
+    const ชื่อแพ็กเกจ = p.packageId === 1 
+      ? `โปรโมชั่น ${ราคาโปร} บาท / 1 วัน` 
+      : `ปกติ ${ราคาเดิม} บาท / 1 วัน`;
+
+    container.innerHTML += `
+      <div class="payment-item pending">
+        <div class="payment-content">
+          <div style="font-weight:bold; margin-bottom:6px;">👤 ${ชื่อ} (${phone})</div>
+          <div style="font-size:0.85rem; color:#94a3b8;">
+            📦 ${ชื่อแพ็กเกจ}<br>
+            💰 ${แค่ตัวเลข(p.amount).toLocaleString('th-TH')} บาท<br>
+            🕒 ${new Date(p.time).toLocaleString('th-TH')}
+          </div>
+          ${รูป ? `<img src="${รูป}" style="max-width:100%; border-radius:8px; margin:8px 0;">` : ''}
+          <div style="display:flex; gap:8px; margin-top:8px;">
+            <button class="member-btn btn-green btn-sm" onclick="อนุมัติ('${phone}')">✅ อนุมัติ</button>
+            <button class="member-btn btn-red btn-sm" onclick="ปฏิเสธ('${phone}')">❌ ปฏิเสธ</button>
+          </div>
+        </div>
+        <button class="payment-delete-btn" onclick="ลบรายการรอตรวจ('${phone}')">ลบ</button>
+      </div>
+    `;
+  }
+
+  if (!มีรายการ) {
+    container.innerHTML = '<div class="empty-text">✅ ไม่มีรายการรอตรวจสอบ</div>';
+  }
+}
+
+function แสดงประวัติทั้งหมด() {
+  const container = document.getElementById('historyList');
+  container.innerHTML = '';
+  const รวมรายการ = [];
+
+  for (const phone in allAccounts) {
+    const u = allAccounts[phone];
+    if (!u.paymentHistory) continue;
+    u.paymentHistory.forEach((p, idx) => {
+      const รหัสจับคู่ = p._uniqueId || สร้างรหัสจับคู่(phone, p.amount, p.time);
+      รวมรายการ.push({ 
+        _uniqueKey: รหัสจับคู่,
+        phone, user: u, index: idx, ...p 
+      });
+    });
+  }
+
+  if (รวมรายการ.length === 0) {
+    container.innerHTML = '<div class="empty-text">ยังไม่มีประวัติการชำระเงิน</div>';
+    return;
+  }
+
+  const เห็นแล้ว = new Set();
+  const ไม่ซ้ำ = รวมรายการ.filter(p => {
+    if (เห็นแล้ว.has(p._uniqueKey)) return false;
+    เห็นแล้ว.add(p._uniqueKey);
+    return true;
+  });
+
+  ไม่ซ้ำ.sort((a, b) => b.time - a.time);
+  ไม่ซ้ำ.forEach(p => {
+    const ชื่อ = p.user.name || 'ไม่ระบุ';
+    const สถานะ = p.status === 'approved' ? '✅ อนุมัติ' : p.status === 'rejected' ? '❌ ปฏิเสธ' : '⏳ รอตรวจ';
+    const คลาส = p.status === 'pending' ? 'pending' : '';
+    
+    container.innerHTML += `
+      <div class="payment-item ${คลาส}">
+        <div class="payment-content">
+          <div style="font-weight:bold;">👤 ${ชื่อ}</div>
+          <div style="font-size:0.85rem; color:#94a3b8; margin-top:4px;">
+            📞 ${p.phone} | 💰 ${แค่ตัวเลข(p.amount).toLocaleString('th-TH')} บาท | ${สถานะ}<br>
+            🕒 ${new Date(p.time).toLocaleString('th-TH')}
+          </div>
+        </div>
+        <button class="payment-delete-btn" onclick="ลบรายการประวัติ('${p.phone}', ${p.index})">ลบ</button>
+      </div>
+    `;
+  });
+}
+
+function ลบรายการประวัติ(phone, index) {
+  if (!confirm('ยืนยันลบรายการนี้?')) return;
+  if (!allAccounts[phone] || !allAccounts[phone].paymentHistory) return;
+  allAccounts[phone].paymentHistory.splice(index, 1);
+  localStorage.setItem(MAIN_KEY, JSON.stringify(allAccounts));
+  แสดงประวัติทั้งหมด();
+  alert('✅ ลบเรียบร้อย');
+}
+
+function ลบประวัติทั้งหมด() {
+  if (!confirm('⚠️ ยืนยันล้างประวัติทั้งหมด?\nการกระทำนี้ไม่สามารถกู้คืนได้')) return;
+  for (const phone in allAccounts) {
+    allAccounts[phone].paymentHistory = [];
+  }
+  localStorage.setItem(MAIN_KEY, JSON.stringify(allAccounts));
+  แสดงประวัติทั้งหมด();
+  alert('✅ ล้างประวัติเรียบร้อย');
+}
+
+function ลบรายการรอตรวจ(phone) {
+  if (!confirm('ยืนยันลบรายการนี้?')) return;
+  if (!allAccounts[phone]) return;
+  delete allAccounts[phone].pendingPayment;
+  localStorage.setItem(MAIN_KEY, JSON.stringify(allAccounts));
+  alert('✅ ลบเรียบร้อย');
+  โหลดข้อมูล();
+}
+
+function อ่านรายการการเงิน() {
+  try {
+    return JSON.parse(localStorage.getItem(FINANCE_KEY) || '[]');
+  } catch { return []; }
+}
+
+function บันทึกรายการการเงิน() {
+  const type = document.getElementById('finType').value;
+  const amount = แค่ตัวเลข(document.getElementById('finAmount').value);
+  const note = document.getElementById('finNote').value.trim();
+
+  if (!amount || amount <= 0) return alert('กรุณากรอกจำนวนเงินให้ถูกต้อง');
+
+  const records = อ่านรายการการเงิน();
+  records.unshift({
+    id: Date.now(),
+    type,
+    amount: amount,
+    note: note || '-',
+    time: new Date().toLocaleString('th-TH'),
+    date: new Date().toISOString().split('T')[0]
+  });
+
+  localStorage.setItem(FINANCE_KEY, JSON.stringify(records));
+  
+  document.getElementById('finAmount').value = '';
+  document.getElementById('finNote').value = '';
+  
+  alert('✅ บันทึกเรียบร้อย');
+  อัปเดตยอดสรุปทันที();
+}
+
+function แสดงทั้งหมด() {
+  document.getElementById('dateStart').value = '';
+  document.getElementById('dateEnd').value = '';
+  โหลดแสดงรายการ(null, null);
+}
+
+function กรองตามช่วงเวลา() {
+  const start = document.getElementById('dateStart').value;
+  const end = document.getElementById('dateEnd').value;
+  
+  if (!start || !end) {
+    alert('กรุณาเลือกทั้งวันที่เริ่มและสิ้นสุด');
+    return;
+  }
+  
+  โหลดแสดงรายการ(start, end);
+}
+
+function โหลดแสดงรายการ(กรองเริ่ม, กรองสิ้นสุด) {
+  allFinanceRecords = อ่านรายการการเงิน();
+  let แสดงรายการ = [...allFinanceRecords];
+  
+  if (กรองเริ่ม && กรองสิ้นสุด) {
+    แสดงรายการ = แสดงรายการ.filter(r => {
+      return r.date >= กรองเริ่ม && r.date <= กรองสิ้นสุด;
+    });
+  }
+
+  currentShownIds = แสดงรายการ.map(r => r.id);
+
+  let รวมรับ = 0, รวมจ่าย = 0;
+  แสดงรายการ.forEach(r => {
+    const จำนวน = แค่ตัวเลข(r.amount);
+    if (r.type === 'income') รวมรับ += จำนวน;
+    else รวมจ่าย += จำนวน;
+  });
+  const คงเหลือ = รวมรับ - รวมจ่าย;
+
+  document.getElementById('sumIncome').textContent = รวมรับ.toLocaleString('th-TH') + ' บาท';
+  document.getElementById('sumExpense').textContent = รวมจ่าย.toLocaleString('th-TH') + ' บาท';
+  document.getElementById('sumBalance').textContent = คงเหลือ.toLocaleString('th-TH') + ' บาท';
+
+  const list = document.getElementById('financeList');
+  const deleteArea = document.getElementById('deleteShownArea');
+  
+  if (แสดงรายการ.length === 0) {
+    list.innerHTML = '<div class="empty-text">ไม่มีรายการในช่วงเวลาที่เลือก</div>';
+    deleteArea.style.display = 'none';
+    return;
+  }
+  
+  list.innerHTML = แสดงรายการ.map(r => {
+    const จำนวน = แค่ตัวเลข(r.amount);
+    return `
+    <div class="finance-item ${r.type}">
+      <div>
+        <div style="font-weight:bold;">${r.type === 'income' ? '📥 รายรับ' : '📤 รายจ่าย'}</div>
+        <div class="finance-meta">${r.time} · ${r.note}</div>
+      </div>
+      <div class="finance-amount">${r.type === 'income' ? '+' : '-'}${จำนวน.toLocaleString('th-TH')}</div>
+    </div>
+  `}).join('');
+  
+  deleteArea.style.display = 'block';
+}
+
+function ลบเฉพาะที่แสดงอยู่() {
+  if (currentShownIds.length === 0) {
+    alert('ไม่มีรายการที่จะลบ');
+    return;
+  }
+  if (!confirm(`⚠️ ยืนยันลบ ${currentShownIds.length} รายการที่กำลังแสดงอยู่?`)) return;
+  
+  let records = อ่านรายการการเงิน();
+  records = records.filter(r => !currentShownIds.includes(r.id));
+  localStorage.setItem(FINANCE_KEY, JSON.stringify(records));
+  
+  alert('✅ ลบเรียบร้อย');
+  currentShownIds = [];
+  
+  const start = document.getElementById('dateStart').value;
+  const end = document.getElementById('dateEnd').value;
+  if (start && end) {
+    โหลดแสดงรายการ(start, end);
+  } else {
+    โหลดแสดงรายการ(null, null);
+  }
+}
+
+function โหลดค่าการตั้งค่า() {
+  const s = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+  
+  document.getElementById('accName').value = s.accName || 'นาย ทรงพล พานทอง';
+  document.getElementById('accNumber').value = s.accNumber || '062-3989-089';
+  document.getElementById('accBank').value = s.accBank || 'ธนาคารกสิกรไทย';
+  
+  // โหลดแค่ตัวเลข
+  document.getElementById('promoPriceNum').value = s.promoPrice || 200;
+  document.getElementById('normalPriceNum').value = s.normalPrice || 300;
+}
+
+function บันทึกการตั้งค่าทั้งหมด() {
+  const promoVal = parseInt(document.getElementById('promoPriceNum').value) || 200;
+  const normalVal = parseInt(document.getElementById('normalPriceNum').value) || 300;
+  
+  const การตั้งค่า = {
+    accName: document.getElementById('accName').value.trim(),
+    accNumber: document.getElementById('accNumber').value.trim(),
+    accBank: document.getElementById('accBank').value.trim(),
+    promoPrice: promoVal,
+    normalPrice: normalVal
+  };
+  
+  localStorage.setItem(SETTINGS_KEY, JSON.stringify(การตั้งค่า));
+  alert('✅ บันทึกการตั้งค่าเรียบร้อย\nสมาชิกจะเห็นข้อมูลใหม่ทันที');
+}
+
+function เปลี่ยนแท็บ(ชื่อ) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  
+  const tabBtn = document.getElementById('tab' + ชื่อ.charAt(0).toUpperCase() + ชื่อ.slice(1));
+  if (tabBtn) tabBtn.classList.add('active');
+  
+  const sec = document.getElementById('sec' + ชื่อ.charAt(0).toUpperCase() + ชื่อ.slice(1));
+  if (sec) sec.classList.add('active');
+  
+  if (ชื่อ === 'finance') {
+    อัปเดตยอดสรุปทันที();
+  }
+}
+
+function ค้นหาสมาชิก(คำ) {
+  แสดงรายการสมาชิก(คำ.trim());
+}
+
+async function อนุมัติ(phone) {
+  if (localStorage.getItem(PROCESSING_KEY) === phone) {
+    alert('⚠️ กำลังดำเนินการอยู่ กรุณารอสักครู่...');
+    return;
+  }
+
+  if (!confirm('ยืนยันการอนุมัติ?')) return;
+  
+  const u = allAccounts[phone];
+  if (!u || !u.pendingPayment) {
+    alert('⚠️ ไม่พบรายการรออนุมัติ');
+    return;
+  }
+
+  const p = u.pendingPayment;
+  const uniqueId = p._uniqueId || สร้างรหัสจับคู่(phone, p.amount, p.time);
+  
+  if (p._processed === true) {
+    alert('⚠️ รายการนี้ได้รับการอนุมัติแล้ว');
+    delete u.pendingPayment;
+    localStorage.setItem(MAIN_KEY, JSON.stringify(allAccounts));
+    โหลดข้อมูล();
+    return;
+  }
+
+  localStorage.setItem(PROCESSING_KEY, phone);
+  p._processed = true;
+  p._uniqueId = uniqueId;
+
+  const จำนวนเงิน = แค่ตัวเลข(p.amount);
+  if (จำนวนเงิน <= 0) {
+    alert('⚠️ จำนวนเงินไม่ถูกต้อง');
+    delete u.pendingPayment;
+    localStorage.setItem(MAIN_KEY, JSON.stringify(allAccounts));
+    localStorage.removeItem(PROCESSING_KEY);
+    return;
+  }
+
+  if (!u.paymentHistory) u.paymentHistory = [];
+  
+  let พบรายการเดิม = false;
+  for (let i = 0; i < u.paymentHistory.length; i++) {
+    const รหัสทดสอบ = u.paymentHistory[i]._uniqueId || สร้างรหัสจับคู่(phone, u.paymentHistory[i].amount, u.paymentHistory[i].time);
+    if (รหัสทดสอบ === uniqueId) {
+      u.paymentHistory[i].status = 'approved';
+      u.paymentHistory[i]._uniqueId = uniqueId;
+      u.paymentHistory[i]._approvedAt = Date.now();
+      พบรายการเดิม = true;
+      break;
+    }
+  }
+  
+  if (!พบรายการเดิม) {
+    u.paymentHistory.unshift({
+      _uniqueId: uniqueId,
+      amount: จำนวนเงิน,
+      packageId: p.packageId,
+      status: 'approved',
+      time: p.time,
+      _approvedAt: Date.now()
+    });
+  }
+  
+  const เพิ่มเวลา = 24 * 60 * 60 * 1000;
+  u.expireTime = u.expireTime ? Math.max(Date.now(), u.expireTime) + เพิ่มเวลา : Date.now() + เพิ่มเวลา;
+  
+  if (p.packageId === 1) u.usedPromo = true;
+  
+  const records = อ่านรายการการเงิน();
+  const มีรายรับแล้ว = records.some(r => r._uniqueId === uniqueId);
+  
+  if (!มีรายรับแล้ว) {
+    records.unshift({
+      _uniqueId: uniqueId,
+      id: Date.now(),
+      type: 'income',
+      amount: จำนวนเงิน,
+      note: `ชำระเงินจาก ${u.name || phone}`,
+      time: new Date().toLocaleString('th-TH'),
+      date: new Date().toISOString().split('T')[0]
+    });
+    localStorage.setItem(FINANCE_KEY, JSON.stringify(records));
+  }
+  
+  delete u.pendingPayment;
+  
+  localStorage.setItem(MAIN_KEY, JSON.stringify(allAccounts));
+  localStorage.removeItem(PROCESSING_KEY);
+  
+  alert(`✅ อนุมัติเรียบร้อย\n+${จำนวนเงิน.toLocaleString('th-TH')} บาท\nเพิ่มเวลาใช้งาน 1 วัน`);
+  โหลดข้อมูล();
+}
+
+function ปฏิเสธ(phone) {
+  if (!confirm('ยืนยันการปฏิเสธ?')) return;
+  const u = allAccounts[phone];
+  if (!u || !u.pendingPayment) return;
+  
+  const p = u.pendingPayment;
+  const uniqueId = p._uniqueId || สร้างรหัสจับคู่(phone, p.amount, p.time);
+  const จำนวนเงิน = แค่ตัวเลข(p.amount);
+  
+  if (!u.paymentHistory) u.paymentHistory = [];
+  
+  let พบรายการเดิม = false;
+  for (let i = 0; i < u.paymentHistory.length; i++) {
+    const รหัสทดสอบ = u.paymentHistory[i]._uniqueId || สร้างรหัสจับคู่(phone, u.paymentHistory[i].amount, u.paymentHistory[i].time);
+    if (รหัสทดสอบ === uniqueId) {
+      u.paymentHistory[i].status = 'rejected';
+      u.paymentHistory[i]._uniqueId = uniqueId;
+      พบรายการเดิม = true;
+      break;
+    }
+  }
+  
+  if (!พบรายการเดิม) {
+    u.paymentHistory.unshift({
+      _uniqueId: uniqueId,
+      amount: จำนวนเงิน,
+      packageId: p.packageId,
+      status: 'rejected',
+      time: p.time
+    });
+  }
+  
+  delete u.pendingPayment;
+  localStorage.setItem(MAIN_KEY, JSON.stringify(allAccounts));
+  alert('❌ ปฏิเสธเรียบร้อย');
+  โหลดข้อมูล();
+}
+
+function ลบบัญชี(phone) {
+  if (!confirm(`⚠️ ยืนยันลบบัญชี ${allAccounts[phone]?.name || phone}?`)) return;
+  delete allAccounts[phone];
+  localStorage.setItem(MAIN_KEY, JSON.stringify(allAccounts));
+  alert('✅ ลบบัญชีเรียบร้อย');
+  แสดงรายการสมาชิก();
+}
+
+function เปลี่ยนรหัส(phone) {
+  const ใหม่ = prompt('กรุณากรอกรหัสผ่านใหม่:');
+  if (!ใหม่) return;
+  if (!allAccounts[phone]) return;
+  allAccounts[phone].pass = ใหม่;
+  localStorage.setItem(MAIN_KEY, JSON.stringify(allAccounts));
+  alert('✅ เปลี่ยนรหัสเรียบร้อย');
+}
+
+function ดูประวัติ(phone) {
+  เปลี่ยนแท็บ('history');
+}
+
+function ออกจากระบบ() {
+  if (confirm('ต้องการออกจากระบบ?')) {
+    localStorage.removeItem('loggedIn');
+    localStorage.removeItem('userPhone');
+    localStorage.removeItem('userName');
+    localStorage.removeItem('userRole');
+    location.href = 'ล็อกอิน.html';
+  }
+}
+
+if (localStorage.getItem('userRole') !== 'admin') {
+  alert('ไม่มีสิทธิ์เข้าถึงหน้านี้');
+  location.href = 'ล็อกอิน.html';
+}
+
+window.onload = โหลดข้อมูล;
+</script>
+
+</body>
+</html>
+

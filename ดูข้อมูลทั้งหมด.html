@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>📊 วิเคราะห์ข้อมูลความถี่ลูกเต๋า</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: sans-serif; }
+    body { background: #050508; color: #fff; padding: 20px; }
+    h1 { text-align: center; color: #facc15; margin-bottom: 20px; }
+    .group-box {
+      background: #1a1a2e; border-radius: 10px; padding: 16px; margin-bottom: 20px;
+      border: 2px solid #2a509;
+    }
+    .group-title { font-size: 1.1rem; font-weight: bold; color: #93c5fd; margin-bottom: 12px; }
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 12px; }
+    .stat-card { background: #0f0f1a; padding: 10px; border-radius: 6px; text-align: center; }
+    .stat-label { font-size: 0.75rem; color: #94a3b8; margin-bottom: 4px; }
+    .stat-val { font-size: 1.1rem; font-weight: bold; color: #4ade80; }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 8px 10px; text-align: center; border-bottom: 1px solid #2a3a5c; font-size: 0.9rem; }
+    th { background: #2a3a5c; color: #facc15; }
+    .diff-low { color: #4ade80; }
+    .diff-mid { color: #facc15; }
+    .diff-high { color: #ef4444; }
+    .download-btn {
+      padding: 10px 20px; background: #22c55e; color: #000; border: none; border-radius: 8px;
+      font-weight: bold; cursor: pointer; margin-bottom: 20px; width: 100%; font-size: 1rem;
+    }
+    .empty { text-align: center; padding: 30px; color: #6b7280; }
+    .note { margin-top: 10px; font-size: 0.85rem; color: #94a3b8; line-height: 1.5; }
+  </style>
+</head>
+<body>
+
+<h1>📊 วิเคราะห์ข้อมูลความถี่ลูกเต๋า</h1>
+<button class="download-btn" onclick="ดาวน์โหลดCSV()">📥 ดาวน์โหลดข้อมูลเป็นไฟล์ CSV</button>
+<div id="resultArea"></div>
+
+<script>
+const SAMPLE_KEY = 'diceSamples';
+const GROUPS = {
+  g1: 'กลุ่มที่ 1 — จานไม่อุด + เต๋าใส-ใหญ่',
+  g2: 'กลุ่มที่ 2 — จานไม่อุด + เต๋าขาว-ใหญ่',
+  g3: 'กลุ่มที่ 3 — จานอุด + เต๋าใส-ใหญ่',
+  g4: 'กลุ่มที่ 4 — จานอุด + เต๋าขาว-ใหญ่'
+};
+
+function ดึงข้อมูลทั้งหมด() {
+  const d = localStorage.getItem(SAMPLE_KEY);
+  if (!d) return {};
+  try {
+    const parsed = JSON.parse(d);
+    if (Array.isArray(parsed)) return { g1: parsed };
+    return parsed;
+  } catch { return {}; }
+}
+
+function จำนวน(n) { return Number(n || 0); }
+
+function แสดงผล() {
+  const allData = ดึงข้อมูลทั้งหมด();
+  const area = document.getElementById('resultArea');
+  area.innerHTML = '';
+  
+  if (Object.keys(allData).length === 0) {
+    area.innerHTML = '<div class="empty">❌ ยังไม่มีข้อมูลที่บันทึกไว้ในเครื่องนี้</div>';
+    return;
+  }
+  
+  for (const [key, label] of Object.entries(GROUPS)) {
+    const items = allData[key] || [];
+    if (items.length === 0) continue;
+    
+    // คำนวณสถิติ
+    const freqs = items.map(s => จำนวน(s.freq)).filter(f => f > 0);
+    if (freqs.length === 0) continue;
+    
+    const count = freqs.length;
+    const min = Math.min(...freqs);
+    const max = Math.max(...freqs);
+    const avg = Math.round(freqs.reduce((a,b) => a+b, 0) / count);
+    
+    // คำนวณค่าเบี่ยงเบนมาตรฐาน
+    const variance = freqs.reduce((sum, f) => sum + Math.pow(f - avg, 2), 0) / count;
+    const stdDev = Math.round(Math.sqrt(variance));
+    
+    // จัดกลุ่มตามช่วง (ห่างกันไม่เกิน 30 Hz ให้อยู่กลุ่มเดียวกัน)
+    const ranges = [];
+    [...freqs].sort((a,b) => a-b).forEach(f => {
+      let added = false;
+      for (const r of ranges) {
+        if (f >= r.min - 30 && f <= r.max + 30) {
+          r.min = Math.min(r.min, f);
+          r.max = Math.max(r.max, f);
+          r.items.push(f);
+          added = true;
+          break;
+        }
+      }
+      if (!added) ranges.push({ min: f, max: f, items: [f] });
+    });
+    
+    const box = document.createElement('div');
+    box.className = 'group-box';
+    box.innerHTML = `
+      <div class="group-title">📦 ${label}</div>
+      <div class="stats">
+        <div class="stat-card">
+          <div class="stat-label">จำนวน</div>
+          <div class="stat-val">${count}</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">ค่าต่ำสุด</div>
+          <div class="stat-val">${min} Hz</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">ค่าสูงสุด</div>
+          <div class="stat-val">${max} Hz</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">ค่าเฉลี่ย</div>
+          <div class="stat-val">${avg} Hz</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">เบี่ยงเบน</div>
+          <div class="stat-val ${stdDev < 30 ? 'diff-low' : stdDev < 100 ? 'diff-mid' : 'diff-high'}">${stdDev} Hz</div>
+        </div>
+      </div>
+      
+      <div style="margin:10px 0; padding:10px; background:#0f0f1a; border-radius:6px;">
+        <strong>📈 กลุ่มช่วงความถี่ที่ใกล้กัน:</strong><br>
+        ${ranges.map((r,i) => {
+          const avgR = Math.round(r.items.reduce((a,b)=>a+b,0)/r.items.length);
+          return `กลุ่มย่อย ${i+1}: ${r.min}–${r.max} Hz (เฉลี่ย ${avgR} Hz) — ${r.items.length} ครั้ง`;
+        }).join('<br>')}
+      </div>
+      
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>ความถี่ (Hz)</th><th>เลขที่ได้</th><th>เวลา</th></tr></thead>
+          <tbody>
+            ${items.map((s, idx) => `
+              <tr>
+                <td>${idx+1}</td>
+                <td>${s.freq || '--'}</td>
+                <td>${Array.isArray(s.nums) ? s.nums.join(', ') : '-'}</td>
+                <td style="font-size:0.8rem; color:#94a3b8;">${s.time || ''}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+      
+      <div class="note">
+        💡 <strong>สังเกต:</strong> ค่าแตกต่างกันหลักสิบ เช่น 3,650 → 3,667 คือ <span class="diff-low">ปกติ</span> (เบี่ยงเบนไม่กี่เปอร์เซ็นต์)<br>
+        ✅ ถ้าค่าใกล้เคียงกันแบบนี้ → สามารถตั้ง "ช่วงยอมรับ" ได้ เช่น ±50 Hz เพื่อจับคู่กับกลุ่มข้อมูล
+      </div>
+    `;
+    area.appendChild(box);
+  }
+}
+
+function ดาวน์โหลดCSV() {
+  const allData = ดึงข้อมูลทั้งหมด();
+  let csv = 'กลุ่ม,ลำดับ,ความถี่(Hz),เลข1,เลข2,เลข3,เวลา\n';
+  
+  for (const [key, items] of Object.entries(allData)) {
+    items.forEach((s, idx) => {
+      const nums = Array.isArray(s.nums) ? s.nums : ['','',''];
+      csv += `${key},${idx+1},"${s.freq || ''}","${nums[0]}","${nums[1]}","${nums[2]}","${s.time || ''}"\n`;
+    });
+  }
+  
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `ข้อมูลความถี่_${new Date().toLocaleDateString('th-TH').replaceAll('/','-')}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+แสดงผล();
+</script>
+</body>
+</html>

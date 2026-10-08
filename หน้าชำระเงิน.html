@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DICESONAR - ชำระเงิน</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: sans-serif; }
+body {
+  background: #0f1118; min-height: 100vh; padding: 16px; color: #fff; padding-bottom: 100px;
+}
+.section-title {
+  color: #fff; font-size: 1rem; margin: 10px 0 12px; font-weight: bold;
+}
+.package-item {
+  border-radius: 10px; padding: 12px 16px; margin-bottom: 10px;
+  background: #1e2030; border: 2px solid transparent; cursor: pointer; transition: 0.2s;
+}
+.package-item.selected {
+  border-color: #facc15; background: rgba(250,204,21,0.1);
+}
+.package-item.disabled {
+  opacity: 0.5; cursor: not-allowed; border-color: #ef4444;
+  background: rgba(239,68,68,0.1);
+}
+.package-name { font-size: 0.95rem; font-weight: bold; margin-bottom: 4px; }
+.package-price { font-size: 1.1rem; color: #facc15; font-weight: bold; }
+.disabled-note { 
+  color: #ef4444; font-size: 0.8rem; margin-top: 6px; display: none; 
+}
+.account-box {
+  border-radius: 12px; padding: 20px; margin: 20px 0;
+  background: #1e2030; border: 2px solid #38bdf8;
+}
+.account-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 10px 0; border-bottom: 1px solid #2a2a4a; flex-wrap: wrap; gap: 8px;
+}
+.account-row:last-child { border-bottom: none; }
+.account-label { color: #94a3b8; font-size: 0.9rem; min-width: 80px; }
+.account-value { color: #fff; font-weight: bold; font-size: 1rem; flex: 1; }
+.copy-btn {
+  background: #38bdf8; border: none; border-radius: 6px; padding: 6px 12px;
+  color: #fff; font-size: 0.85rem; cursor: pointer; transition: 0.2s; white-space: nowrap;
+}
+.copy-btn:active { background: #0ea5e9; }
+.form-group { margin-bottom: 14px; }
+.form-group label {
+  display: block; color: #94a3b8; font-size: 0.9rem; margin-bottom: 6px;
+}
+.form-group input {
+  width: 100%; padding: 14px 16px; border-radius: 10px; border: none;
+  background: #2a2a4a; color: #fff; font-size: 1rem; outline: none;
+}
+.form-group input[readonly] { color: #94a3b8; background: #252538; }
+.upload-area {
+  border: 2px dashed #38bdf8; border-radius: 12px; padding: 30px;
+  text-align: center; cursor: pointer; margin: 20px 0;
+}
+.upload-icon { font-size: 2rem; margin-bottom: 8px; }
+.upload-text { color: #94a3b8; }
+.file-selected { color: #4ade80; margin-top: 8px; display: none; }
+.preview-img { max-width: 100%; max-height: 150px; margin-top: 10px; border-radius: 8px; display: none; }
+.submit-btn {
+  width: 100%; padding: 15px; border: none; border-radius: 10px;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff; font-weight: bold; font-size: 1rem; cursor: pointer;
+}
+.nav-bar {
+  position: fixed; bottom: 0; left: 0; right: 0; display: flex; gap: 12px;
+  padding: 12px 16px; background: rgba(15,17,24,0.95); border-top: 1px solid #1f2937;
+}
+.nav-btn {
+  flex: 1; padding: 14px; border: none; border-radius: 10px;
+  font-size: 0.9rem; font-weight: bold; cursor: pointer;
+}
+.nav-home { background: #e5e7eb; color: #000; }
+.nav-logout { background: transparent; border: 2px solid #ef4444; color: #ef4444; }
+.toast {
+  position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+  background: #10b981; color: #fff; padding: 10px 20px; border-radius: 8px;
+  font-weight: bold; z-index: 999; display: none;
+}
+.debug-box { background: #1a1a2e; padding: 10px; margin: 15px 0; border-radius: 8px; font-size: 0.7rem; color: #aaa; word-break: break-all; max-height: 100px; overflow-y: auto; }
+.popup-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none;
+  align-items: center; justify-content: center; z-index: 999;
+}
+.popup-box {
+  background: #1a2a4a; border: 2px solid #facc15; border-radius: 16px;
+  padding: 24px 28px; max-width: 320px; text-align: center; color: #fff;
+}
+.popup-icon { font-size: 40px; margin-bottom: 12px; }
+.popup-text { font-size: 1rem; line-height: 1.6; margin-bottom: 16px; }
+.popup-btn {
+  padding: 10px 24px; border: none; border-radius: 8px; background: #facc15;
+  color: #000; font-weight: bold; cursor: pointer;
+}
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast">✅ คัดลอกสำเร็จ!</div>
+
+<div class="popup-overlay" id="popupOverlay">
+  <div class="popup-box">
+    <div class="popup-icon">⚠️</div>
+    <div class="popup-text" id="popupText"></div>
+    <button class="popup-btn" onclick="ปิดป๊อปอัพ()">ตกลง</button>
+  </div>
+</div>
+
+<p class="section-title">เลือกแพ็กเกจ</p>
+
+<div class="package-item" id="pkg1" onclick="เลือกแพ็กเกจ(1)">
+  <div class="package-name">แพ็กเกจ ทดลองใช้ครั้งแรก</div>
+  <div class="package-price" id="price1">200 บาท / 1 วัน</div>
+  <div class="disabled-note" id="pkg1Note">❌ ท่านได้ใช้โปรโมชั่นนี้ไปแล้ว</div>
+</div>
+
+<div class="package-item" id="pkg2" onclick="เลือกแพ็กเกจ(2)">
+  <div class="package-name">แพ็กเกจ ปกติ</div>
+  <div class="package-price" id="price2">300 บาท / 1 วัน</div>
+</div>
+
+<div class="account-box">
+  <div class="account-row">
+    <span class="account-label">ชื่อบัญชี</span>
+    <span class="account-value" id="accName">นาย ทรงพล พานทอง</span>
+  </div>
+  <div class="account-row">
+    <span class="account-label">เลขบัญชี</span>
+    <span class="account-value" id="accNumber">062-3989-089</span>
+    <button class="copy-btn" onclick="คัดลอกเลขบัญชี()">📋 คัดลอก</button>
+  </div>
+  <div class="account-row">
+    <span class="account-label">ธนาคาร</span>
+    <span class="account-value" id="accBank">ธนาคารกสิกรไทย</span>
+  </div>
+</div>
+
+<div class="form-group">
+  <label>ชื่อผู้โอน</label>
+  <input type="text" id="senderName" readonly>
+</div>
+
+<div class="form-group">
+  <label>จำนวนเงินที่โอน</label>
+  <input type="text" id="amount" placeholder="เช่น 200 บาท">
+</div>
+
+<div class="upload-area" onclick="document.getElementById('proofFile').click()">
+  <input type="file" id="proofFile" accept="image/*" style="display:none" onchange="เลือกรูป(this)">
+  <div class="upload-icon">📷</div>
+  <div class="upload-text">กดเลือกรูปสลิป<br>รองรับ JPG, PNG</div>
+  <div class="file-selected" id="fileMsg">✅ เลือกรูปแล้ว</div>
+  <img id="previewImg" class="preview-img" alt="ตัวอย่างรูป">
+</div>
+
+<button class="submit-btn" onclick="ส่งหลักฐาน()">✅ ส่งหลักฐานการชำระเงิน</button>
+
+<details style="margin-top:15px;">
+  <summary style="color:#666; font-size:0.75rem; cursor:pointer;">ข้อมูลระบบ</summary>
+  <div class="debug-box" id="debugInfo"></div>
+</details>
+
+<div class="nav-bar">
+  <button class="nav-btn nav-home" onclick="location.href='หน้าสมาชิก.html'">🏠 กลับหน้าหลัก</button>
+  <button class="nav-btn nav-logout" onclick="ออกจากระบบ()">🚪 ออกจากระบบ</button>
+</div>
+
+<script>
+const MAIN_KEY = 'allAccounts';
+const SETTINGS_KEY = 'systemSettings';
+
+let selectedPkg = null;
+let selectedImageData = null;
+let เคยใช้โปรโมชั่น = false;
+
+const DEFAULT_SETTINGS = {
+  promoPrice: 200,
+  normalPrice: 300,
+  accName: 'นาย ทรงพล พานทอง',
+  accNumber: '062-3989-089',
+  accBank: 'ธนาคารกสิกรไทย'
+};
+
+function getAccounts() {
+  const raw = localStorage.getItem(MAIN_KEY);
+  document.getElementById('debugInfo').textContent = raw || 'ว่างเปล่า';
+  
+  if (!raw) {
+    const init = {
+      "admin": {
+        "pass": "123456",
+        "role": "admin",
+        "name": "ผู้ดูแลระบบ",
+        "expireTime": null,
+        "paymentHistory": []
+      }
+    };
+    localStorage.setItem(MAIN_KEY, JSON.stringify(init));
+    return init;
+  }
+  
+  try {
+    return JSON.parse(raw);
+  } catch (e) {
+    alert('⚠️ ข้อมูลเสีย — กรุณาเข้าสู่ระบบใหม่');
+    window.location.href = 'ล็อกอิน.html';
+    return {};
+  }
+}
+
+function โหลดข้อมูลระบบทั้งหมด() {
+  const raw = localStorage.getItem(SETTINGS_KEY);
+  let settings = DEFAULT_SETTINGS;
+  
+  if (raw) {
+    try {
+      settings = { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+    } catch (e) {}
+  }
+  
+  document.getElementById('price1').textContent = `${settings.promoPrice} บาท / 1 วัน`;
+  document.getElementById('price2').textContent = `${settings.normalPrice} บาท / 1 วัน`;
+  document.getElementById('accName').textContent = settings.accName;
+  document.getElementById('accNumber').textContent = settings.accNumber;
+  document.getElementById('accBank').textContent = settings.accBank;
+  
+  return settings;
+}
+
+function saveAccounts(accounts) {
+  if (!accounts || typeof accounts !== 'object') return false;
+  localStorage.setItem(MAIN_KEY, JSON.stringify(accounts));
+  return true;
+}
+
+const phone = localStorage.getItem('userPhone');
+if (!phone || localStorage.getItem('loggedIn') !== 'true') {
+  alert('กรุณาเข้าสู่ระบบก่อน');
+  window.location.href = 'ล็อกอิน.html';
+}
+
+let systemSettings = {};
+window.onload = function() {
+  systemSettings = โหลดข้อมูลระบบทั้งหมด();
+  
+  const userName = localStorage.getItem('userName') || 'สมาชิก';
+  document.getElementById('senderName').value = userName;
+  
+  const allAccounts = getAccounts();
+  if (allAccounts[phone]) {
+    เคยใช้โปรโมชั่น = !!allAccounts[phone].usedPromo;
+    if (เคยใช้โปรโมชั่น) {
+      document.getElementById('pkg1').classList.add('disabled');
+      document.getElementById('pkg1Note').style.display = 'block';
+    }
+  }
+};
+
+function แสดงป๊อปอัพ(ข้อความ) {
+  document.getElementById('popupText').innerHTML = ข้อความ.replace(/\n/g, '<br>');
+  document.getElementById('popupOverlay').style.display = 'flex';
+}
+function ปิดป๊อปอัพ() {
+  document.getElementById('popupOverlay').style.display = 'none';
+}
+
+function เลือกแพ็กเกจ(num) {
+  if (num === 1 && เคยใช้โปรโมชั่น) {
+    แสดงป๊อปอัพ('ท่านได้ใช้โปรโมชั่นพิเศษสำหรับสมาชิกใหม่ไปแล้วครับ\n\nกรุณาเลือกแพ็กเกจปกติแทน');
+    return;
+  }
+
+  selectedPkg = num;
+  document.getElementById('pkg1').classList.toggle('selected', num === 1);
+  document.getElementById('pkg2').classList.toggle('selected', num === 2);
+  
+  const ราคา = num === 1 ? systemSettings.promoPrice : systemSettings.normalPrice;
+  document.getElementById('amount').value = `${ราคา} บาท`;
+}
+
+function คัดลอกเลขบัญชี() {
+  const number = document.getElementById('accNumber').textContent;
+  navigator.clipboard.writeText(number).then(() => {
+    const toast = document.getElementById('toast');
+    toast.style.display = 'block';
+    setTimeout(() => toast.style.display = 'none', 2000);
+  });
+}
+
+function เลือกรูป(input) {
+  if (input.files && input.files[0]) {
+    const file = input.files[0];
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      selectedImageData = e.target.result;
+      document.getElementById('fileMsg').style.display = 'block';
+      const preview = document.getElementById('previewImg');
+      preview.src = selectedImageData;
+      preview.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+function ส่งหลักฐาน() {
+  if (!selectedPkg) return alert('กรุณาเลือกแพ็กเกจ');
+  
+  if (selectedPkg === 1 && เคยใช้โปรโมชั่น) {
+    แสดงป๊อปอัพ('ท่านได้ใช้โปรโมชั่นนี้ไปแล้วครับ\nกรุณาเลือกแพ็กเกจปกติ');
+    return;
+  }
+
+  const amount = document.getElementById('amount').value.trim();
+  if (!amount) return alert('กรุณากรอกจำนวนเงิน');
+  if (!selectedImageData) return alert('กรุณาเลือกรูปสลิป');
+
+  const allAccounts = getAccounts();
+  
+  if (!allAccounts[phone]) {
+    alert('❌ ไม่พบบัญชีของคุณในระบบ กรุณาออกจากระบบแล้วเข้าใหม่');
+    return;
+  }
+
+  if (selectedPkg === 1) {
+    allAccounts[phone].usedPromo = true;
+    เคยใช้โปรโมชั่น = true;
+  }
+
+  const paymentData = {
+    package: selectedPkg,
+    amount: amount,
+    senderName: document.getElementById('senderName').value,
+    time: Date.now(),
+    status: 'pending',
+    proofImage: selectedImageData
+  };
+
+  allAccounts[phone].pendingPayment = paymentData;
+
+  if (!allAccounts[phone].paymentHistory) {
+    allAccounts[phone].paymentHistory = [];
+  }
+  allAccounts[phone].paymentHistory.unshift(paymentData);
+
+  if (!allAccounts[phone].name) allAccounts[phone].name = localStorage.getItem('userName') || 'สมาชิก';
+  if (!allAccounts[phone].role) allAccounts[phone].role = 'member';
+  if (allAccounts[phone].expireTime === undefined) allAccounts[phone].expireTime = null;
+
+  if (!saveAccounts(allAccounts)) {
+    alert('❌ บันทึกข้อมูลไม่สำเร็จ');
+    return;
+  }
+
+  alert('✅ ส่งข้อมูลเรียบร้อยแล้ว!\nรอผู้ดูแลตรวจสอบและอนุมัติ');
+  location.href = 'หน้าสมาชิก.html';
+}
+
+function ออกจากระบบ() {
+  if (confirm('ออกจากระบบ?')) {
+    localStorage.removeItem('loggedIn');
+    localStorage.removeItem('userPhone');
+    localStorage.removeItem('userName');
+    localStorage.removeItem('userRole');
+    location.href = 'ล็อกอิน.html';
+  }
+}
+</script>
+
+</body>
+</html>
+
