@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DICESONAR - เข้าสู่ระบบ</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: sans-serif; }
+body {
+  background: linear-gradient(135deg, #0f1a2f 0%, #152040 100%);
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.container {
+  width: 100%;
+  max-width: 420px;
+  border: 2px solid #2a5090;
+  border-radius: 20px;
+  padding: 32px 24px;
+  background: rgba(20, 35, 60, 0.7);
+}
+.logo-circle {
+  width: 80px; height: 80px; border-radius: 50%;
+  background: linear-gradient(135deg, #fdd835, #4fc3f7);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 16px; font-size: 36px;
+}
+h1 {
+  text-align: center; font-size: 1.8rem;
+  background: linear-gradient(90deg, #fdd835, #81c784);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  margin-bottom: 8px;
+}
+.subtitle { text-align: center; color: #a0b8e0; font-size: 0.9rem; margin-bottom: 28px; }
+.tabs { display: flex; margin-bottom: 24px; }
+.tab {
+  flex: 1; padding: 12px; border: none; font-size: 0.95rem; cursor: pointer; transition: 0.25s;
+}
+.tab.active { background: #fdd835; color: #000; border-radius: 10px 0 0 10px; font-weight: bold; }
+.tab.inactive { background: rgba(80, 110, 160, 0.3); color: #90a8d0; border-radius: 0 10px 10px 0; }
+.form-content { display: none; }
+.form-content.active { display: block; }
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; color: #90a8d0; font-size: 0.85rem; margin-bottom: 8px; }
+.form-group input {
+  width: 100%; padding: 14px 16px; border-radius: 10px;
+  border: 1px solid #3a60a0; background: rgba(30, 50, 90, 0.5);
+  color: #fff; font-size: 0.95rem; outline: none;
+}
+.form-group input:focus { border-color: #fdd835; }
+.login-btn {
+  width: 100%; padding: 15px; border: none; border-radius: 10px;
+  background: #fdd835; color: #000; font-size: 1rem; font-weight: bold;
+  cursor: pointer; margin-top: 8px; transition: 0.2s;
+}
+.error-msg { color: #ff6b6b; margin-top: 14px; font-size: 0.85rem; text-align: center; display: none; }
+.popup-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+  display: none; align-items: center; justify-content: center; z-index: 999;
+}
+.popup-box {
+  background: #1a2a4a; border: 2px solid #4ade80; border-radius: 16px;
+  padding: 24px 28px; max-width: 320px; text-align: center; color: #fff;
+}
+.popup-icon { font-size: 40px; margin-bottom: 12px; }
+.popup-text { font-size: 1rem; line-height: 1.5; }
+.popup-timer { font-size: 0.8rem; color: #94a3b8; margin-top: 10px; }
+.debug-box { background: #1a1a2e; padding: 10px; margin-top: 15px; border-radius: 8px; font-size: 0.7rem; color: #aaa; word-break: break-all; max-height: 100px; overflow-y: auto; }
+
+.otp-btn {
+  margin-top: 8px; padding: 10px 14px; border: none; border-radius: 8px;
+  background: #3b82f6; color: #fff; font-size: 0.9rem; cursor: pointer;
+  width: 100%; transition: 0.2s;
+}
+.otp-btn:disabled { background: #4b5563; opacity: 0.7; cursor: not-allowed; }
+.otp-btn.verified { background: #10b981; cursor: default; }
+.otp-status { font-size: 0.85rem; margin-top: 6px; min-height: 22px; }
+.hint { font-size: 0.75rem; color: #6b7280; margin-top: 4px; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="logo-circle">🎲</div>
+  <h1>DICESONAR</h1>
+  <p class="subtitle">วิเคราะห์เสียงแบบเรียลไทม์</p>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="login">เข้าสู่ระบบ</button>
+    <button class="tab inactive" data-tab="register">สมัครสมาชิก</button>
+  </div>
+
+  <div id="loginForm" class="form-content active">
+    <div class="form-group">
+      <label>เบอร์โทรศัพท์ที่ลงทะเบียน</label>
+      <input type="text" id="username" placeholder="ใส่เบอร์โทรที่ใช้สมัคร">
+    </div>
+    <div class="form-group">
+      <label>รหัสผ่าน</label>
+      <input type="password" id="password" placeholder="ใส่รหัสผ่าน">
+    </div>
+    <button class="login-btn" id="loginBtn">เข้าสู่ระบบ</button>
+    <p class="error-msg" id="errorMsg"></p>
+    <details style="margin-top:12px;">
+      <summary style="color:#666; font-size:0.75rem; cursor:pointer;">ข้อมูลระบบ</summary>
+      <div class="debug-box" id="debugInfo"></div>
+    </details>
+  </div>
+
+  <div id="registerForm" class="form-content">
+    <div class="form-group">
+      <label>ชื่อ-นามสกุล</label>
+      <input type="text" id="regName" placeholder="กรอกชื่อ-นามสกุล">
+    </div>
+    <div class="form-group">
+      <label>เบอร์โทรศัพท์</label>
+      <input type="tel" id="regPhone" placeholder="กรอกเบอร์ 10 หลัก เช่น 0812345678" maxlength="10">
+      <button type="button" id="sendOtpBtn" class="otp-btn" onclick="ส่งรหัสOTP()">📤 ส่งรหัสยืนยัน</button>
+      <p class="hint">ตรวจสอบเบอร์เพื่อป้องกันการใช้โปรโมชั่นซ้ำซ้อน</p>
+    </div>
+
+    <div class="form-group" id="otpSection" style="display:none;">
+      <label>🔑 รหัสยืนยัน 6 หลัก</label>
+      <input type="text" id="otpInput" placeholder="กรอกรหัสที่ได้รับ" maxlength="6">
+      <button type="button" id="verifyOtpBtn" class="otp-btn" onclick="ตรวจสอบรหัส()">✅ ยืนยันรหัส</button>
+      <p id="otpStatus" class="otp-status"></p>
+    </div>
+
+    <div class="form-group">
+      <label>ตั้งรหัสผ่าน</label>
+      <input type="password" id="regPass" placeholder="ตั้งรหัสผ่านอย่างน้อย 6 ตัว">
+    </div>
+    <div class="form-group">
+      <label>ยืนยันรหัสผ่าน</label>
+      <input type="password" id="regPass2" placeholder="พิมพ์รหัสผ่านอีกครั้ง">
+    </div>
+    <button class="login-btn" id="registerBtn">สมัครสมาชิก</button>
+    <p class="error-msg" id="regError"></p>
+  </div>
+</div>
+
+<div id="popupOverlay" class="popup-overlay">
+  <div class="popup-box">
+    <div class="popup-icon">✅</div>
+    <div id="popupText" class="popup-text"></div>
+    <div id="popupTimer" class="popup-timer"></div>
+  </div>
+</div>
+
+<script>
+const MAIN_KEY = 'allAccounts';
+const ADMIN_PHONE = 'admin';
+const ADMIN_PASS = '123456';
+let รหัสที่ส่ง = null;
+let ยืนยันเรียบร้อย = false;
+let ตัวนับเวลา = null;
+
+function getAccounts() {
+  const raw = localStorage.getItem(MAIN_KEY);
+  const debug = document.getElementById('debugInfo');
+  if (debug) debug.textContent = raw || 'ว่างเปล่า';
+  
+  if (!raw) {
+    const init = {};
+    init[ADMIN_PHONE] = {
+      "pass": ADMIN_PASS,
+      "role": "admin",
+      "name": "ผู้ดูแลระบบ",
+      "expireTime": null,
+      "verified": true
+    };
+    localStorage.setItem(MAIN_KEY, JSON.stringify(init));
+    return init;
+  }
+  
+  try {
+    const data = JSON.parse(raw);
+    if (!data[ADMIN_PHONE]) {
+      data[ADMIN_PHONE] = {
+        "pass": ADMIN_PASS,
+        "role": "admin",
+        "name": "ผู้ดูแลระบบ",
+        "expireTime": null,
+        "verified": true
+      };
+      localStorage.setItem(MAIN_KEY, JSON.stringify(data));
+    }
+    return data;
+  } catch (e) {
+    localStorage.removeItem(MAIN_KEY);
+    const init = {};
+    init[ADMIN_PHONE] = {
+      "pass": ADMIN_PASS,
+      "role": "admin",
+      "name": "ผู้ดูแลระบบ",
+      "expireTime": null,
+      "verified": true
+    };
+    localStorage.setItem(MAIN_KEY, JSON.stringify(init));
+    return init;
+  }
+}
+
+function saveAccounts(accounts) {
+  if (!accounts || typeof accounts !== 'object') return false;
+  localStorage.setItem(MAIN_KEY, JSON.stringify(accounts));
+  return true;
+}
+
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.onclick = () => {
+    document.querySelectorAll('.tab').forEach(t => {
+      t.classList.toggle('active', t === tab);
+      t.classList.toggle('inactive', t !== tab);
+    });
+    const isLogin = tab.dataset.tab === 'login';
+    document.getElementById('loginForm').classList.toggle('active', isLogin);
+    document.getElementById('registerForm').classList.toggle('active', !isLogin);
+    document.getElementById('errorMsg').style.display = 'none';
+    getAccounts();
+  };
+});
+
+document.getElementById('loginBtn').onclick = () => {
+  const accounts = getAccounts();
+  const user = document.getElementById('username').value.trim();
+  const pass = document.getElementById('password').value.trim();
+  const err = document.getElementById('errorMsg');
+
+  if (!user) { err.textContent = 'กรุณาใส่เบอร์โทร'; err.style.display = 'block'; return; }
+
+  if (user === ADMIN_PHONE) {
+    if (pass === ADMIN_PASS) {
+      localStorage.setItem('loggedIn', 'true');
+      localStorage.setItem('userPhone', ADMIN_PHONE);
+      localStorage.setItem('userName', 'ผู้ดูแลระบบ');
+      localStorage.setItem('userRole', 'admin');
+      location.href = 'หน้าผู้ดูแลระบบ.html';
+      return;
+    } else {
+      err.textContent = '❌ รหัสผ่านไม่ถูกต้อง';
+      err.style.display = 'block';
+      return;
+    }
+  }
+
+  if (!accounts[user]) {
+    err.textContent = '❌ ไม่พบบัญชี: "' + user + '"';
+    err.style.display = 'block';
+    return;
+  }
+  
+  if (String(accounts[user].pass).trim() !== String(pass).trim()) {
+    err.textContent = '❌ รหัสผ่านไม่ถูกต้อง';
+    err.style.display = 'block';
+    return;
+  }
+
+  localStorage.setItem('loggedIn', 'true');
+  localStorage.setItem('userPhone', user);
+  localStorage.setItem('userName', accounts[user].name || 'ไม่ระบุชื่อ');
+  localStorage.setItem('userRole', accounts[user].role || 'member');
+
+  if (accounts[user].role === 'admin') {
+    location.href = 'หน้าผู้ดูแลระบบ.html';
+  } else {
+    location.href = 'หน้าสมาชิก.html';
+  }
+};
+
+function showPopup(msg) {
+  const overlay = document.getElementById('popupOverlay');
+  document.getElementById('popupText').textContent = msg;
+  overlay.style.display = 'flex';
+  let t = 3;
+  const timer = setInterval(() => {
+    document.getElementById('popupTimer').textContent = `กลับไปหน้าเข้าสู่ระบบใน ${t} วินาที`;
+    if (--t < 0) {
+      clearInterval(timer);
+      overlay.style.display = 'none';
+      document.querySelector('[data-tab="login"]').click();
+    }
+  }, 1000);
+}
+
+function ส่งรหัสOTP() {
+  const เบอร์ = document.getElementById('regPhone').value.trim();
+  
+  if (!/^0[0-9]{9}$/.test(เบอร์)) {
+    return alert('⚠️ กรอกเบอร์ให้ถูกต้อง\\nเริ่มด้วย 0 และมี 10 หลัก เช่น 0812345678');
+  }
+
+  const บัญชี = getAccounts();
+  if (บัญชี[เบอร์]) {
+    return alert('⚠️ เบอร์นี้มีผู้ใช้งานแล้ว');
+  }
+
+  รหัสที่ส่ง = String(Math.floor(100000 + Math.random() * 900000));
+  alert(`✅ ส่งรหัสเรียบร้อย\\n\\nรหัสยืนยัน: ${รหัสที่ส่ง}\\n\\n(เมื่อเชื่อมระบบ SMS รหัสจะส่งไปที่เบอร์ของคุณ)`);
+
+  document.getElementById('otpSection').style.display = 'block';
+  document.getElementById('otpStatus').textContent = '⏳ รอกรอกรหัส...';
+  document.getElementById('otpStatus').style.color = '#facc15';
+
+  document.getElementById('sendOtpBtn').disabled = true;
+  let เหลือ = 60;
+  clearInterval(ตัวนับเวลา);
+  ตัวนับเวลา = setInterval(() => {
+    เหลือ--;
+    document.getElementById('sendOtpBtn').textContent = `⏳ ส่งใหม่ (${เหลือ})`;
+    if (เหลือ <= 0) {
+      clearInterval(ตัวนับเวลา);
+      document.getElementById('sendOtpBtn').disabled = false;
+      document.getElementById('sendOtpBtn').textContent = '📤 ส่งรหัสยืนยัน';
+    }
+  }, 1000);
+}
+
+function ตรวจสอบรหัส() {
+  const กรอก = document.getElementById('otpInput').value.trim();
+  
+  if (!รหัสที่ส่ง) return alert('⚠️ กดส่งรหัสก่อน');
+  
+  if (กรอก === รหัสที่ส่ง) {
+    ยืนยันเรียบร้อย = true;
+    document.getElementById('otpStatus').textContent = '✅ ยืนยันเบอร์เรียบร้อย';
+    document.getElementById('otpStatus').style.color = '#4ade80';
+    document.getElementById('verifyOtpBtn').classList.add('verified');
+    document.getElementById('verifyOtpBtn').disabled = true;
+    clearInterval(ตัวนับเวลา);
+    document.getElementById('sendOtpBtn').disabled = true;
+    document.getElementById('sendOtpBtn').textContent = '✅ ยืนยันแล้ว';
+  } else {
+    document.getElementById('otpStatus').textContent = '❌ รหัสไม่ถูกต้อง';
+    document.getElementById('otpStatus').style.color = '#ef4444';
+  }
+}
+
+document.getElementById('registerBtn').onclick = () => {
+  const accounts = getAccounts();
+  const name = document.getElementById('regName').value.trim();
+  const phone = document.getElementById('regPhone').value.trim();
+  const pass = document.getElementById('regPass').value;
+  const pass2 = document.getElementById('regPass2').value;
+
+  if (!name || !phone || !pass || !pass2) {
+    alert('กรอกข้อมูลให้ครบทุกช่อง'); return;
+  }
+  if (!ยืนยันเรียบร้อย) {
+    alert('⚠️ ยืนยันเบอร์โทรด้วยรหัส OTP ก่อนสมัคร'); return;
+  }
+  if (pass.length < 6) {
+    alert('รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร'); return;
+  }
+  if (pass !== pass2) {
+    alert('รหัสผ่านไม่ตรงกัน'); return;
+  }
+  if (accounts[phone]) {
+    alert('เบอร์นี้มีผู้ใช้งานแล้ว'); return;
+  }
+
+  accounts[phone] = {
+    "pass": pass,
+    "role": "member",
+    "name": name,
+    "expireTime": null,
+    "pendingPayment": null,
+    "verified": true,
+    "registeredAt": new Date().toISOString()
+  };
+  
+  saveAccounts(accounts);
+  showPopup(`✅ สมัครสำเร็จ!\\nชื่อ: ${name}\\nเบอร์: ${phone}\\nสถานะ: สมาชิก`);
+};
+
+getAccounts();
+</script>
+
+</body>
+</html>
+
