@@ -118,14 +118,14 @@ h1 {
     <div class="form-group">
       <label>เบอร์โทรศัพท์</label>
       <input type="tel" id="regPhone" placeholder="กรอกเบอร์ 10 หลัก เช่น 0812345678" maxlength="10">
-      <button type="button" id="sendOtpBtn" class="otp-btn" onclick="ส่งรหัสOTP()">📤 ส่งรหัสยืนยัน</button>
+      <button type="button" id="sendOtpBtn" class="otp-btn">📤 ส่งรหัสยืนยัน</button>
       <p class="hint">ตรวจสอบเบอร์เพื่อป้องกันการใช้โปรโมชั่นซ้ำซ้อน</p>
     </div>
 
     <div class="form-group" id="otpSection" style="display:none;">
       <label>🔑 รหัสยืนยัน 6 หลัก</label>
       <input type="text" id="otpInput" placeholder="กรอกรหัสที่ได้รับ" maxlength="6">
-      <button type="button" id="verifyOtpBtn" class="otp-btn" onclick="ตรวจสอบรหัส()">✅ ยืนยันรหัส</button>
+      <button type="button" id="verifyOtpBtn" class="otp-btn">✅ ยืนยันรหัส</button>
       <p id="otpStatus" class="otp-status"></p>
     </div>
 
@@ -154,9 +154,9 @@ h1 {
 const MAIN_KEY = 'allAccounts';
 const ADMIN_PHONE = 'admin';
 const ADMIN_PASS = '123456';
-let รหัสที่ส่ง = null;
-let ยืนยันเรียบร้อย = false;
-let ตัวนับเวลา = null;
+let otpCode = null;
+let isVerified = false;
+let timerCount = null;
 
 function getAccounts() {
   const raw = localStorage.getItem(MAIN_KEY);
@@ -166,11 +166,11 @@ function getAccounts() {
   if (!raw) {
     const init = {};
     init[ADMIN_PHONE] = {
-      "pass": ADMIN_PASS,
-      "role": "admin",
-      "name": "ผู้ดูแลระบบ",
-      "expireTime": null,
-      "verified": true
+      pass: ADMIN_PASS,
+      role: 'admin',
+      name: 'ผู้ดูแลระบบ',
+      expireTime: null,
+      verified: true
     };
     localStorage.setItem(MAIN_KEY, JSON.stringify(init));
     return init;
@@ -180,11 +180,11 @@ function getAccounts() {
     const data = JSON.parse(raw);
     if (!data[ADMIN_PHONE]) {
       data[ADMIN_PHONE] = {
-        "pass": ADMIN_PASS,
-        "role": "admin",
-        "name": "ผู้ดูแลระบบ",
-        "expireTime": null,
-        "verified": true
+        pass: ADMIN_PASS,
+        role: 'admin',
+        name: 'ผู้ดูแลระบบ',
+        expireTime: null,
+        verified: true
       };
       localStorage.setItem(MAIN_KEY, JSON.stringify(data));
     }
@@ -193,11 +193,11 @@ function getAccounts() {
     localStorage.removeItem(MAIN_KEY);
     const init = {};
     init[ADMIN_PHONE] = {
-      "pass": ADMIN_PASS,
-      "role": "admin",
-      "name": "ผู้ดูแลระบบ",
-      "expireTime": null,
-      "verified": true
+      pass: ADMIN_PASS,
+      role: 'admin',
+      name: 'ผู้ดูแลระบบ',
+      expireTime: null,
+      verified: true
     };
     localStorage.setItem(MAIN_KEY, JSON.stringify(init));
     return init;
@@ -238,7 +238,7 @@ document.getElementById('loginBtn').onclick = () => {
       localStorage.setItem('userPhone', ADMIN_PHONE);
       localStorage.setItem('userName', 'ผู้ดูแลระบบ');
       localStorage.setItem('userRole', 'admin');
-      location.href = 'หน้าผู้ดูแลระบบ.html';
+      window.location.href = 'หน้าผู้ดูแลระบบ.html';
       return;
     } else {
       err.textContent = '❌ รหัสผ่านไม่ถูกต้อง';
@@ -265,9 +265,9 @@ document.getElementById('loginBtn').onclick = () => {
   localStorage.setItem('userRole', accounts[user].role || 'member');
 
   if (accounts[user].role === 'admin') {
-    location.href = 'หน้าผู้ดูแลระบบ.html';
+    window.location.href = 'หน้าผู้ดูแลระบบ.html';
   } else {
-    location.href = 'หน้าสมาชิก.html';
+    window.location.href = 'หน้าสมาชิก.html';
   }
 };
 
@@ -286,58 +286,58 @@ function showPopup(msg) {
   }, 1000);
 }
 
-function ส่งรหัสOTP() {
-  const เบอร์ = document.getElementById('regPhone').value.trim();
+document.getElementById('sendOtpBtn').onclick = function() {
+  const phone = document.getElementById('regPhone').value.trim();
   
-  if (!/^0[0-9]{9}$/.test(เบอร์)) {
-    return alert('⚠️ กรอกเบอร์ให้ถูกต้อง\\nเริ่มด้วย 0 และมี 10 หลัก เช่น 0812345678');
+  if (!/^0[0-9]{9}$/.test(phone)) {
+    return alert('⚠️ กรอกเบอร์ให้ถูกต้อง\nเริ่มด้วย 0 และมี 10 หลัก เช่น 0812345678');
   }
 
-  const บัญชี = getAccounts();
-  if (บัญชี[เบอร์]) {
+  const accounts = getAccounts();
+  if (accounts[phone]) {
     return alert('⚠️ เบอร์นี้มีผู้ใช้งานแล้ว');
   }
 
-  รหัสที่ส่ง = String(Math.floor(100000 + Math.random() * 900000));
-  alert(`✅ ส่งรหัสเรียบร้อย\\n\\nรหัสยืนยัน: ${รหัสที่ส่ง}\\n\\n(เมื่อเชื่อมระบบ SMS รหัสจะส่งไปที่เบอร์ของคุณ)`);
+  otpCode = String(Math.floor(100000 + Math.random() * 900000));
+  alert('✅ ส่งรหัสเรียบร้อย\n\nรหัสยืนยัน: ' + otpCode + '\n\n(เมื่อเชื่อมระบบ SMS รหัสจะส่งไปที่เบอร์ของคุณ)');
 
   document.getElementById('otpSection').style.display = 'block';
   document.getElementById('otpStatus').textContent = '⏳ รอกรอกรหัส...';
   document.getElementById('otpStatus').style.color = '#facc15';
 
-  document.getElementById('sendOtpBtn').disabled = true;
-  let เหลือ = 60;
-  clearInterval(ตัวนับเวลา);
-  ตัวนับเวลา = setInterval(() => {
-    เหลือ--;
-    document.getElementById('sendOtpBtn').textContent = `⏳ ส่งใหม่ (${เหลือ})`;
-    if (เหลือ <= 0) {
-      clearInterval(ตัวนับเวลา);
+  this.disabled = true;
+  let remaining = 60;
+  clearInterval(timerCount);
+  timerCount = setInterval(() => {
+    remaining--;
+    document.getElementById('sendOtpBtn').textContent = '⏳ ส่งใหม่ (' + remaining + ')';
+    if (remaining <= 0) {
+      clearInterval(timerCount);
       document.getElementById('sendOtpBtn').disabled = false;
       document.getElementById('sendOtpBtn').textContent = '📤 ส่งรหัสยืนยัน';
     }
   }, 1000);
-}
+};
 
-function ตรวจสอบรหัส() {
-  const กรอก = document.getElementById('otpInput').value.trim();
+document.getElementById('verifyOtpBtn').onclick = function() {
+  const input = document.getElementById('otpInput').value.trim();
   
-  if (!รหัสที่ส่ง) return alert('⚠️ กดส่งรหัสก่อน');
+  if (!otpCode) return alert('⚠️ กดส่งรหัสก่อน');
   
-  if (กรอก === รหัสที่ส่ง) {
-    ยืนยันเรียบร้อย = true;
+  if (input === otpCode) {
+    isVerified = true;
     document.getElementById('otpStatus').textContent = '✅ ยืนยันเบอร์เรียบร้อย';
     document.getElementById('otpStatus').style.color = '#4ade80';
     document.getElementById('verifyOtpBtn').classList.add('verified');
     document.getElementById('verifyOtpBtn').disabled = true;
-    clearInterval(ตัวนับเวลา);
+    clearInterval(timerCount);
     document.getElementById('sendOtpBtn').disabled = true;
     document.getElementById('sendOtpBtn').textContent = '✅ ยืนยันแล้ว';
   } else {
     document.getElementById('otpStatus').textContent = '❌ รหัสไม่ถูกต้อง';
     document.getElementById('otpStatus').style.color = '#ef4444';
   }
-}
+};
 
 document.getElementById('registerBtn').onclick = () => {
   const accounts = getAccounts();
@@ -349,7 +349,7 @@ document.getElementById('registerBtn').onclick = () => {
   if (!name || !phone || !pass || !pass2) {
     alert('กรอกข้อมูลให้ครบทุกช่อง'); return;
   }
-  if (!ยืนยันเรียบร้อย) {
+  if (!isVerified) {
     alert('⚠️ ยืนยันเบอร์โทรด้วยรหัส OTP ก่อนสมัคร'); return;
   }
   if (pass.length < 6) {
@@ -363,17 +363,17 @@ document.getElementById('registerBtn').onclick = () => {
   }
 
   accounts[phone] = {
-    "pass": pass,
-    "role": "member",
-    "name": name,
-    "expireTime": null,
-    "pendingPayment": null,
-    "verified": true,
-    "registeredAt": new Date().toISOString()
+    pass: pass,
+    role: 'member',
+    name: name,
+    expireTime: null,
+    pendingPayment: null,
+    verified: true,
+    registeredAt: new Date().toISOString()
   };
   
   saveAccounts(accounts);
-  showPopup(`✅ สมัครสำเร็จ!\\nชื่อ: ${name}\\nเบอร์: ${phone}\\nสถานะ: สมาชิก`);
+  showPopup('✅ สมัครสำเร็จ!\nชื่อ: ' + name + '\nเบอร์: ' + phone + '\nสถานะ: สมาชิก');
 };
 
 getAccounts();
